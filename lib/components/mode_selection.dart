@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:proyecto_grafitos/provider/settings_provider.dart';
 
-enum SearchMode { time, length }
-
-class ModeSelection extends StatefulWidget {
+class ModeSelection extends StatelessWidget {
   const ModeSelection({super.key});
 
   @override
-  State<ModeSelection> createState() => _ModeSelectionState();
-}
-
-class _ModeSelectionState extends State<ModeSelection> {
-  @override
   Widget build(BuildContext context) {
+    final searchMode = context.select<SettingsProvider, Set<SearchMode>>((p) => p.searchMode);
+
     return SegmentedButton(
       segments: <ButtonSegment<SearchMode>>[
-        ButtonSegment(value: SearchMode.time, label: Text('Tiempo')),
-        ButtonSegment(value: SearchMode.length, label: Text('Distancia')),
+        ButtonSegment(value: SearchMode.time, label: Text('Tiempo'), icon: Icon(Icons.more_time)),
+        ButtonSegment(
+          value: SearchMode.length,
+          label: Text('Distancia'),
+          icon: Icon(Icons.timeline),
+        ),
       ],
       style: ButtonStyle(
         backgroundColor: WidgetStateColor.fromMap({
@@ -23,8 +24,11 @@ class _ModeSelectionState extends State<ModeSelection> {
           WidgetState.any: Theme.of(context).colorScheme.surface,
         }),
       ),
-      selected: {SearchMode.time},
-      onSelectionChanged: (_) {},
+      selected: searchMode,
+      emptySelectionAllowed: true,
+      onSelectionChanged: (setOfSearchMode) {
+        context.read<SettingsProvider>().setSearchMode(setOfSearchMode);
+      },
     );
   }
 }

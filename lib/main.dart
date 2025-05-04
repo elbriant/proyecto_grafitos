@@ -1,7 +1,20 @@
-import 'package:flutter/material.dart';
-import 'package:proyecto_grafitos/pages/main_page.dart';
+import 'dart:io';
 
-void main() {
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:proyecto_grafitos/global_data.dart';
+import 'package:proyecto_grafitos/pages/main_page.dart';
+import 'package:proyecto_grafitos/provider/debug_provider.dart';
+import 'package:proyecto_grafitos/provider/settings_provider.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'package:flutter/services.dart' show ByteData, rootBundle;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await databaseSetup();
+
   runApp(const MyApp());
 }
 
@@ -10,15 +23,34 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'GrafitosApp',
-      theme: ThemeData.from(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.orangeAccent,
-          dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => DebugProvider()),
+      ],
+      child: MaterialApp(
+        title: 'GrafitosApp',
+        navigatorKey: NavigationService.navigatorKey,
+        theme: ThemeData.from(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.orangeAccent,
+            dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
+          ),
         ),
+        home: MainPage(),
       ),
-      home: MainPage(),
     );
+  }
+}
+
+Future<void> databaseSetup() async {
+  var databasesPath = await getDatabasesPath();
+  String dbPath = join(databasesPath, 'database.db');
+
+  // copy db file from Assets folder to database folder (only if not already there...)
+  if (FileSystemEntity.typeSync(dbPath) == FileSystemEntityType.notFound) {
+    ByteData data = await rootBundle.load("assets/database.db");
+    final buffer = data.buffer;
+    File(dbPath).writeAsBytesSync(buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
   }
 }
