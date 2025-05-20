@@ -3,24 +3,25 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_grafitos/global_data.dart' show NavigationService;
+import 'package:proyecto_grafitos/models/edge.dart';
 import 'package:proyecto_grafitos/models/vertex.dart';
 import 'package:proyecto_grafitos/provider/debug_provider.dart';
 import 'package:proyecto_grafitos/provider/settings_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
-class MapSample extends StatefulWidget {
-  const MapSample({super.key});
+class MapWidget extends StatefulWidget {
+  const MapWidget({super.key});
 
   @override
-  State<MapSample> createState() => MapSampleState();
+  State<MapWidget> createState() => MapWidgetState();
 }
 
-class MapSampleState extends State<MapSample> {
+class MapWidgetState extends State<MapWidget> {
   late MapController mapController;
   bool isdbLoaded = false;
 
   List<Vertex> vertex = [];
-  List<Polyline> path = [];
+  List<Edge> edges = [];
 
   @override
   void initState() {
@@ -53,64 +54,54 @@ class MapSampleState extends State<MapSample> {
     }
 
     Vertex vtx = vertex.firstWhere((e) => e.id == id);
-    context.read<SettingsProvider>().setButtonLabel(vtx.name);
+    context.read<SettingsProvider>().setButtonLabel(vtx);
   }
 
   Future<void> loadDBData() async {
     Database db = await openDatabase('database.db');
 
-    List<Map<String, Object?>> rawPaths = await db.rawQuery('SELECT * FROM caminos');
-    List<Map<String, Object?>> rawVertexC = await db.rawQuery('SELECT * FROM ciudades');
-    List<Map<String, Object?>> rawVertexE = await db.rawQuery('SELECT * FROM empresas');
+    List<Map<String, Object?>> rawEdges = await db.rawQuery('SELECT * FROM caminos');
+    List<Map<String, Object?>> rawVertex = await db.rawQuery('SELECT * FROM nodos');
 
-    List<Polyline> processedPaths =
-        rawPaths.map((rawPath) {
-          var rawCityOrigin = rawVertexC.firstWhere(
-            (e) => e['id'] == rawPath['Id_ciudad_origen'],
-            orElse: () => rawVertexE.firstWhere((e) => e['id'] == rawPath['Id_ciudad_origen']),
-          );
-          var rawCityDestiny = rawVertexC.firstWhere(
-            (e) => e['id'] == rawPath['Id_ciudad_destino'],
-            orElse: () => rawVertexE.firstWhere((e) => e['id'] == rawPath['Id_ciudad_destino']),
+    List<Edge> processedEdges =
+        rawEdges.map((rawPath) {
+          var rawCityOrigin = rawVertex.firstWhere((e) => e['idNodos'] == rawPath['idNodoOrigen']);
+          var rawCityDestiny = rawVertex.firstWhere(
+            (e) => e['idNodos'] == rawPath['idNodoDestino'],
           );
 
-          return Polyline(
+          return Edge(
+            trafficWeight: rawPath['trafico'] as double,
+            lenghtWeight: rawPath['distancia'] as double,
             points: [
-              LatLng(rawCityOrigin['latitud']! as double, rawCityOrigin['longitud']! as double),
-              LatLng(rawCityDestiny['latitud']! as double, rawCityDestiny['longitud']! as double),
+              LatLng(rawCityOrigin['latitud'] as double, rawCityOrigin['longitud'] as double),
+              LatLng(rawCityDestiny['latitud'] as double, rawCityDestiny['longitud'] as double),
             ],
           );
         }).toList();
 
-    List<Vertex> processedVertexC =
-        rawVertexC
+    List<Vertex> processedVertex =
+        rawVertex
             .map(
               (rawVertex) => Vertex(
-                id: rawVertex['id']! as int,
-                name: rawVertex['nombre']! as String,
-                point: LatLng(rawVertex['latitud']! as double, rawVertex['longitud']! as double),
+                id: rawVertex['idNodos'] as int,
+                name: rawVertex['nombre'] as String,
+                isCity: (rawVertex['esCiudad'] as int) == 1 ? true : false,
+                address: rawVertex['direccion'] as String?,
+                rif: rawVertex['rif'] as String?,
+                point: LatLng(rawVertex['latitud'] as double, rawVertex['longitud'] as double),
                 child: GestureDetector(
-                  onTap: () => markerTapped(rawVertex['id']! as int),
+                  onTap: () => markerTapped(rawVertex['id'] as int),
                   child: Icon(Icons.location_on),
                 ),
               ),
             )
             .toList();
 
-    // List<Marker> processedVertexE =
-    //     rawVertexE
-    //         .map(
-    //           (rawVertex) => Marker(
-    //             point: LatLng(rawVertex['latitud']! as double, rawVertex['longitud']! as double),
-    //             child: Icon(Icons.location_city),
-    //           ),
-    //         )
-    //         .toList();
-
     if (context.mounted) {
       setState(() {
-        vertex = [...processedVertexC];
-        path = processedPaths;
+        vertex = processedVertex;
+        edges = processedEdges;
       });
     }
   }
@@ -138,7 +129,7 @@ class MapSampleState extends State<MapSample> {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // For demonstration only
           userAgentPackageName: 'com.example.proyecto_grafitos',
         ),
-        PolylineLayer(polylines: path),
+        PolylineLayer(polylines: edges),
         MarkerLayer(markers: vertex, rotate: true),
       ],
     );

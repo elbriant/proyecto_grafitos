@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:proyecto_grafitos/models/vertex.dart';
 
 enum SelectButton { from, to }
 
@@ -8,21 +9,21 @@ class SettingsProvider extends ChangeNotifier {
   SelectButton? buttonSelection;
   Set<SearchMode> searchMode = {};
 
-  String? buttonFromLabel;
-  String? buttonToLabel;
+  Vertex? vertexFrom;
+  Vertex? vertexTo;
 
   void setButtonSelection(SelectButton? value) {
     buttonSelection = value;
     notifyListeners();
   }
 
-  void setButtonLabel(String? value) {
+  void setButtonLabel(Vertex? value) {
     switch (buttonSelection) {
       case SelectButton.from:
-        buttonFromLabel = value;
+        vertexFrom = value;
         notifyListeners();
       case SelectButton.to:
-        buttonToLabel = value;
+        vertexTo = value;
         notifyListeners();
       default:
         break;

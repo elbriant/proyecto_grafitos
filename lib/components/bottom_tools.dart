@@ -22,9 +22,8 @@ class BottomTools extends StatelessWidget {
       (p) => p.buttonSelection,
     );
 
-    final fromButtonLabel = context.select<SettingsProvider, String?>((p) => p.buttonFromLabel);
-
-    final toButtonLabel = context.select<SettingsProvider, String?>((p) => p.buttonToLabel);
+    final fromButtonLabel = context.select<SettingsProvider, String?>((p) => p.vertexFrom?.name);
+    final toButtonLabel = context.select<SettingsProvider, String?>((p) => p.vertexTo?.name);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
