@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_grafitos/global_data.dart';
@@ -48,7 +49,7 @@ Future<void> databaseSetup() async {
   String dbPath = join(databasesPath, 'database.db');
 
   // copy db file from Assets folder to database folder (only if not already there...)
-  if (FileSystemEntity.typeSync(dbPath) == FileSystemEntityType.notFound) {
+  if (FileSystemEntity.typeSync(dbPath) == FileSystemEntityType.notFound || kDebugMode) {
     ByteData data = await rootBundle.load("assets/database.db");
     final buffer = data.buffer;
     File(dbPath).writeAsBytesSync(buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));

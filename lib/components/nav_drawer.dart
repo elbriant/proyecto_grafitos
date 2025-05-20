@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_grafitos/provider/debug_provider.dart';
+import 'package:proyecto_grafitos/provider/settings_provider.dart';
 
 class NavDrawer extends StatelessWidget {
   const NavDrawer({super.key});
@@ -28,6 +29,16 @@ class NavDrawer extends StatelessWidget {
             value: debugToggle,
             onChanged: (_) {
               context.read<DebugProvider>().toggleShowDebug();
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 0, 10),
+          child: ListTile(
+            title: Text('Recargar VertexData'),
+            onTap: () {
+              context.read<SettingsProvider>().loadDBData();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('reloaded')));
             },
           ),
         ),
