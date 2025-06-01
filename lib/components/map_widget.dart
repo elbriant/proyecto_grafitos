@@ -44,33 +44,34 @@ class MapWidgetState extends State<MapWidget> {
   @override
   Widget build(BuildContext context) {
     final isdbLoaded = context.select<SettingsProvider, bool>((p) => p.isdbLoaded);
+    final isPathLoading = context.select<SettingsProvider, bool>((p) => p.isPathLoading);
 
-    if (!isdbLoaded) {
+    if (!isdbLoaded || isPathLoading) {
       return Center(child: CircularProgressIndicator());
     }
 
     final edges = context.select<SettingsProvider, List<Edge>>((p) => p.edges);
     final vertex = context.select<SettingsProvider, List<Vertex>>((p) => p.vertex);
 
-    // example purposes
-    final edgeTime = EdgeTime(
-      points: [LatLng(11.674, -70.172), LatLng(11.391, -69.667), LatLng(10.5042441, -66.8935222)],
-      pattern: StrokePattern.dashed(segments: [6.0, 6.0]),
-    );
-    final edgeLength = EdgeLength(
-      points: [
-        LatLng(11.674, -70.172),
-        LatLng(11.391, -69.667),
-        LatLng(10.0784, -69.323),
-        LatLng(10.5042441, -66.8935222),
-      ],
-    );
+    final pathTime = context.select<SettingsProvider, Polyline?>((p) => p.pathTime);
+    final pathLength = context.select<SettingsProvider, Polyline?>((p) => p.pathLength);
+
+    if (pathTime != null || pathLength != null) {
+      mapController.fitCamera(
+        CameraFit.coordinates(
+          coordinates: [...?pathTime?.points, ...?pathLength?.points].nonNulls.toList(),
+          padding: EdgeInsets.all(72.0),
+          maxZoom: 18,
+          minZoom: 0.5,
+        ),
+      );
+    }
 
     return FlutterMap(
       mapController: mapController,
       options: MapOptions(
         initialCenter: LatLng(11.651018, -70.220401), // En unefa XD
-        initialZoom: 18,
+        initialZoom: 7,
         minZoom: 0.5,
         maxZoom: 18,
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -88,7 +89,7 @@ class MapWidgetState extends State<MapWidget> {
           userAgentPackageName: 'com.example.proyecto_grafitos',
         ),
         PolylineLayer(polylines: edges),
-        PolylineLayer(polylines: [edgeTime, edgeLength]),
+        PolylineLayer(polylines: [pathTime, pathLength].nonNulls.toList()),
         MarkerLayer(markers: vertex, rotate: true, alignment: Alignment(0, -0.6)),
       ],
     );

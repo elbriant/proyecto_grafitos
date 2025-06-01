@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:proyecto_grafitos/api/astar.dart';
+import 'package:proyecto_grafitos/api/dijkstra.dart';
 import 'package:proyecto_grafitos/models/edge.dart';
+import 'package:proyecto_grafitos/models/grafo.dart';
 import 'package:proyecto_grafitos/models/vertex.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -14,7 +18,10 @@ class SettingsProvider extends ChangeNotifier {
 
   List<Vertex> vertex = [];
   List<Edge> edges = [];
+  EdgeLength? pathLength;
+  EdgeTime? pathTime;
   bool isdbLoaded = false;
+  bool isPathLoading = false;
 
   Vertex? vertexFrom;
   Vertex? vertexTo;
@@ -43,9 +50,15 @@ class SettingsProvider extends ChangeNotifier {
     switch (buttonSelection) {
       case SelectButton.from:
         vertexFrom = value;
+        if (vertexTo == value) {
+          vertexTo = null;
+        }
         notifyListeners();
       case SelectButton.to:
         vertexTo = value;
+        if (vertexFrom == value) {
+          vertexFrom = null;
+        }
         notifyListeners();
       default:
         break;
@@ -109,5 +122,100 @@ class SettingsProvider extends ChangeNotifier {
             .toList();
 
     _setVertexEdges(ver: processedVertex, edg: processedEdges, dbValue: true);
+  }
+
+  Future<void> searchPath(bool useExternal, bool useAStar) async {
+    if (vertexFrom != null && vertexTo != null) {
+      isPathLoading = true;
+      notifyListeners();
+
+      final graph = Graph(vertex, edges);
+      if (!useExternal) {
+        List<Vertex> pathResult = [];
+        double totalWeight = double.infinity;
+
+        // do both and skip if one is selected
+        for (SearchMode mode in SearchMode.values) {
+          if (searchMode.isNotEmpty && mode != searchMode.first) {
+            continue;
+          }
+
+          if (useAStar) {
+            final resultA = aStar(graph, vertexFrom!, vertexTo!, mode);
+            pathResult = resultA.reconstructPath(vertexFrom!, vertexTo!);
+            totalWeight = resultA.getPathCost(vertexTo!);
+          } else {
+            final resultD = dijkstra(graph, vertexFrom!, mode);
+            pathResult = resultD.getShortestPath(vertexFrom!, vertexTo!);
+            totalWeight = resultD.getPathCost(vertexTo!);
+          }
+          // print('Camino más corto por ${mode}: $pathResult');
+          // print('Peso total (distancia o tráfico): ${resultD.distances[vertexTo]}');
+          setPath(pathResult, mode, totalWeight: totalWeight, omitNullingLast: searchMode.isEmpty);
+        }
+      } else {
+        // XD
+        // hernesto momento
+      }
+      isPathLoading = false;
+      notifyListeners();
+    } else {
+      // make an snackbar
+      print('falta alguno de los vertices');
+      setPath(null, null);
+    }
+  }
+
+  void setPath(
+    List<Vertex>? path,
+    SearchMode? mode, {
+    double? totalWeight,
+    bool omitNullingLast = false,
+  }) {
+    if (!omitNullingLast) {
+      pathLength = null;
+      pathTime = null;
+    }
+
+    if (mode == null && path == null) {
+      //reset both
+      pathLength = null;
+      pathTime = null;
+      notifyListeners();
+      return;
+    }
+
+    if ((path?.isEmpty ?? false) && totalWeight == double.infinity) {
+      //doesnt exists
+      pathLength = null;
+      pathTime = null;
+      notifyListeners();
+      print('camino no existe');
+      return;
+    }
+
+    switch (mode) {
+      case SearchMode.length:
+        pathLength = path != null ? EdgeLength(points: path.map((v) => v.point).toList()) : null;
+      case SearchMode.time:
+        pathTime =
+            path != null
+                ? EdgeTime(
+                  points: path.map((v) => v.point).toList(),
+                  pattern: StrokePattern.dashed(segments: [6.0, 6.0]),
+                )
+                : null;
+      default:
+        pathLength = path != null ? EdgeLength(points: path.map((v) => v.point).toList()) : null;
+        pathTime =
+            path != null
+                ? EdgeTime(
+                  points: path.map((v) => v.point).toList(),
+                  pattern: StrokePattern.dashed(segments: [6.0, 6.0]),
+                )
+                : null;
+    }
+    notifyListeners();
+    return;
   }
 }

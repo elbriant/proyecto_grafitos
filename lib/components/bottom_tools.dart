@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_grafitos/components/mode_selection.dart' show ModeSelection;
+import 'package:proyecto_grafitos/provider/debug_provider.dart';
 import 'package:proyecto_grafitos/provider/settings_provider.dart';
 
 class BottomTools extends StatelessWidget {
@@ -24,6 +25,8 @@ class BottomTools extends StatelessWidget {
 
     final fromButtonLabel = context.select<SettingsProvider, String?>((p) => p.vertexFrom?.name);
     final toButtonLabel = context.select<SettingsProvider, String?>((p) => p.vertexTo?.name);
+    final useExternalAPI = context.select<DebugProvider, bool>((p) => p.useExternalProvider);
+    final useAStar = context.select<DebugProvider, bool>((p) => p.useAStar);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
@@ -80,7 +83,11 @@ class BottomTools extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               ModeSelection(),
-              FloatingActionButton.extended(onPressed: () {}, label: Text('Buscar')),
+              FloatingActionButton.extended(
+                onPressed:
+                    () => context.read<SettingsProvider>().searchPath(useExternalAPI, useAStar),
+                label: Text('Buscar'),
+              ),
             ],
           ),
         ],

@@ -9,6 +9,8 @@ class NavDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final debugToggle = context.select<DebugProvider, bool>((p) => p.showDebug);
+    final externalAPIToggle = context.select<DebugProvider, bool>((p) => p.useExternalProvider);
+    final aStar = context.select<DebugProvider, bool>((p) => p.useAStar);
 
     return NavigationDrawer(
       children: [
@@ -29,6 +31,26 @@ class NavDrawer extends StatelessWidget {
             value: debugToggle,
             onChanged: (_) {
               context.read<DebugProvider>().toggleShowDebug();
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 0, 10),
+          child: SwitchListTile(
+            title: Text('Usar API externa'),
+            value: externalAPIToggle,
+            onChanged: (_) {
+              context.read<DebugProvider>().toggleUseExternalProvider();
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 0, 10),
+          child: SwitchListTile(
+            title: Text('Forzar uso de A*'),
+            value: aStar,
+            onChanged: (_) {
+              context.read<DebugProvider>().toggleUseAStar();
             },
           ),
         ),
