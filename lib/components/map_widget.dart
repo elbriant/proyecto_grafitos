@@ -41,6 +41,37 @@ class MapWidgetState extends State<MapWidget> {
     super.dispose();
   }
 
+  String getDimension(Dimension dimension) {
+    return switch (dimension) {
+      Dimension.land => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      Dimension.aerial => 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      Dimension.maritime => 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+    };
+  }
+
+  Future<void> showContextMenu(TapPosition tapPosition, LatLng point, BuildContext context) async {
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(tapPosition.global, tapPosition.global),
+      Offset.zero & overlay.size,
+    );
+
+    await showMenu(
+      context: context,
+      position: position,
+      items: [
+        PopupMenuItem(
+          onTap: () {
+            ScaffoldMessenger.of(
+              NavigationService.navigatorKey.currentContext!,
+            ).showSnackBar(SnackBar(content: Text("No implementado XD")));
+          },
+          child: Text("Crear nodo aqui (WIP)"),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isdbLoaded = context.select<SettingsProvider, bool>((p) => p.isdbLoaded);
@@ -50,8 +81,19 @@ class MapWidgetState extends State<MapWidget> {
       return Center(child: CircularProgressIndicator());
     }
 
-    final edges = context.select<SettingsProvider, List<Edge>>((p) => p.edges);
-    final vertex = context.select<SettingsProvider, List<Vertex>>((p) => p.vertex);
+    final dimension = context.select<SettingsProvider, Dimension>((p) => p.dimension);
+
+    // TODO: implement filtering by dimension
+    final edges =
+        context
+            .select<SettingsProvider, List<Edge>>((p) => p.edges)
+            .where((e) => dimension == Dimension.land)
+            .toList();
+    final vertex =
+        context
+            .select<SettingsProvider, List<Vertex>>((p) => p.vertex)
+            .where((e) => dimension == Dimension.land)
+            .toList();
 
     final pathTime = context.select<SettingsProvider, Polyline?>((p) => p.pathTime);
     final pathLength = context.select<SettingsProvider, Polyline?>((p) => p.pathLength);
@@ -80,12 +122,14 @@ class MapWidgetState extends State<MapWidget> {
 
           if (context.read<SettingsProvider>().buttonSelection != null) {
             context.read<SettingsProvider>().markerTapped(null);
+          } else {
+            showContextMenu(tapPosition, point, context);
           }
         },
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // For demonstration only
+          urlTemplate: getDimension(dimension), // For demonstration only
           userAgentPackageName: 'com.example.proyecto_grafitos',
         ),
         PolylineLayer(polylines: edges),

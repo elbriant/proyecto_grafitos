@@ -12,12 +12,16 @@ enum SelectButton { from, to }
 
 enum SearchMode { time, length }
 
+enum Dimension { land, maritime, aerial }
+
 class SettingsProvider extends ChangeNotifier {
   SelectButton? buttonSelection;
   Set<SearchMode> searchMode = {};
 
   List<Vertex> vertex = [];
   List<Edge> edges = [];
+  List<Employees>
+  Dimension dimension = Dimension.land;
   EdgeLength? pathLength;
   EdgeTime? pathTime;
   bool isdbLoaded = false;
@@ -28,6 +32,12 @@ class SettingsProvider extends ChangeNotifier {
 
   void setButtonSelection(SelectButton? value) {
     buttonSelection = value;
+    notifyListeners();
+  }
+
+  void setDimension(Dimension value) {
+    if (dimension == value) return;
+    dimension = value;
     notifyListeners();
   }
 
