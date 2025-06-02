@@ -3,9 +3,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:proyecto_grafitos/api/astar.dart';
 import 'package:proyecto_grafitos/api/dijkstra.dart';
+import 'package:proyecto_grafitos/global_data.dart';
 import 'package:proyecto_grafitos/models/edge.dart';
+import 'package:proyecto_grafitos/models/employee.dart';
 import 'package:proyecto_grafitos/models/grafo.dart';
+import 'package:proyecto_grafitos/models/vehicle.dart';
 import 'package:proyecto_grafitos/models/vertex.dart';
+import 'package:proyecto_grafitos/utils/vehicle_select.dart';
 import 'package:sqflite/sqflite.dart';
 
 enum SelectButton { from, to }
@@ -20,7 +24,8 @@ class SettingsProvider extends ChangeNotifier {
 
   List<Vertex> vertex = [];
   List<Edge> edges = [];
-  List<Employees>
+  List<Employee> employees = [];
+  List<Vehicle> vehicles = [];
   Dimension dimension = Dimension.land;
   EdgeLength? pathLength;
   EdgeTime? pathTime;
@@ -94,6 +99,12 @@ class SettingsProvider extends ChangeNotifier {
     setDBLoaded(false);
     Database db = await openDatabase('database.db');
 
+    List<Map<String, Object?>> rawEmployees = await db.rawQuery('SELECT * FROM empleados');
+    List<Map<String, Object?>> rawVehicles = await db.rawQuery('SELECT * FROM vehiculo');
+
+    employees = rawEmployees.map((rawE) => Employee.fromDB(rawE)).toList();
+    vehicles = rawVehicles.map((rawV) => Vehicle.fromDB(rawV)).toList();
+
     List<Map<String, Object?>> rawEdges = await db.rawQuery('SELECT * FROM caminos');
     List<Map<String, Object?>> rawVertex = await db.rawQuery('SELECT * FROM nodos');
 
@@ -136,13 +147,29 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> searchPath(bool useExternal, bool useAStar) async {
     if (vertexFrom != null && vertexTo != null) {
+      final Vehicle? selectedVehicle = await showVehicleModal(
+        NavigationService.navigatorKey.currentContext!,
+        vehicles,
+        employees,
+      );
+
+      if (selectedVehicle == null) {
+        ScaffoldMessenger.of(
+          NavigationService.navigatorKey.currentContext!,
+        ).showSnackBar(SnackBar(content: Text("Selecciona un vehiculo")));
+        return;
+      }
+
       isPathLoading = true;
       notifyListeners();
 
+      // TODO: implement logging of algoryhtm
+      // TODO: implement compute to nice detail
       final graph = Graph(vertex, edges);
       if (!useExternal) {
         List<Vertex> pathResult = [];
         double totalWeight = double.infinity;
+        bool successAtLeastOne = false;
 
         // do both and skip if one is selected
         for (SearchMode mode in SearchMode.values) {
@@ -161,7 +188,24 @@ class SettingsProvider extends ChangeNotifier {
           }
           // print('Camino más corto por ${mode}: $pathResult');
           // print('Peso total (distancia o tráfico): ${resultD.distances[vertexTo]}');
-          setPath(pathResult, mode, totalWeight: totalWeight, omitNullingLast: searchMode.isEmpty);
+          final resbol = setPath(
+            pathResult,
+            mode,
+            totalWeight: totalWeight,
+            omitNullingLast: searchMode.isEmpty,
+          );
+          if (resbol) {
+            successAtLeastOne = resbol;
+          }
+        }
+        if (successAtLeastOne) {
+          ScaffoldMessenger.of(
+            NavigationService.navigatorKey.currentContext!,
+          ).showSnackBar(SnackBar(content: Text("ruta para ${selectedVehicle.matricula}")));
+        } else {
+          ScaffoldMessenger.of(
+            NavigationService.navigatorKey.currentContext!,
+          ).showSnackBar(SnackBar(content: Text("ruta para no existe camino")));
         }
       } else {
         // XD
@@ -171,12 +215,15 @@ class SettingsProvider extends ChangeNotifier {
       notifyListeners();
     } else {
       // make an snackbar
-      print('falta alguno de los vertices');
+      ScaffoldMessenger.of(
+        NavigationService.navigatorKey.currentContext!,
+      ).showSnackBar(SnackBar(content: Text("falta algun vertice")));
       setPath(null, null);
     }
   }
 
-  void setPath(
+  /// returns true if success
+  bool setPath(
     List<Vertex>? path,
     SearchMode? mode, {
     double? totalWeight,
@@ -192,7 +239,7 @@ class SettingsProvider extends ChangeNotifier {
       pathLength = null;
       pathTime = null;
       notifyListeners();
-      return;
+      return true;
     }
 
     if ((path?.isEmpty ?? false) && totalWeight == double.infinity) {
@@ -200,8 +247,7 @@ class SettingsProvider extends ChangeNotifier {
       pathLength = null;
       pathTime = null;
       notifyListeners();
-      print('camino no existe');
-      return;
+      return false;
     }
 
     switch (mode) {
@@ -226,6 +272,6 @@ class SettingsProvider extends ChangeNotifier {
                 : null;
     }
     notifyListeners();
-    return;
+    return true;
   }
 }
