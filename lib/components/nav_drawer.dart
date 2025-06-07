@@ -16,9 +16,11 @@ class NavDrawer extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
-          child: Text('Configuracion', style: Theme.of(context).textTheme.titleSmall),
+          child: Text('Vistas', style: Theme.of(context).textTheme.titleSmall),
         ),
-        NavigationDrawerDestination(label: Text('placeholder'), icon: Icon(Icons.abc)),
+        const SizedBox(height: 6),
+        NavigationDrawerDestination(label: Text('Mapa'), icon: Icon(Icons.map)),
+        NavigationDrawerDestination(label: Text('Pedidos'), icon: Icon(Icons.account_box)),
         const Padding(padding: EdgeInsets.fromLTRB(28, 16, 28, 10), child: Divider()),
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
@@ -64,7 +66,6 @@ class NavDrawer extends StatelessWidget {
             },
           ),
         ),
-        NavigationDrawerDestination(label: Text('placeholder'), icon: Icon(Icons.abc)),
       ],
     );
   }

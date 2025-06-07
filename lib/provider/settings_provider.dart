@@ -42,6 +42,13 @@ class SettingsProvider extends ChangeNotifier {
 
   void setDimension(Dimension value) {
     if (dimension == value) return;
+
+    //paths and selected vertex also should be nulled
+    vertexFrom = null;
+    vertexTo = null;
+    pathLength = null;
+    pathTime = null;
+
     dimension = value;
     notifyListeners();
   }
@@ -146,6 +153,7 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   Future<void> searchPath(bool useExternal, bool useAStar) async {
+    buttonSelection = null;
     if (vertexFrom != null && vertexTo != null) {
       final Vehicle? selectedVehicle = await showVehicleModal(
         NavigationService.navigatorKey.currentContext!,
@@ -199,13 +207,17 @@ class SettingsProvider extends ChangeNotifier {
           }
         }
         if (successAtLeastOne) {
-          ScaffoldMessenger.of(
-            NavigationService.navigatorKey.currentContext!,
-          ).showSnackBar(SnackBar(content: Text("ruta para ${selectedVehicle.matricula}")));
+          ScaffoldMessenger.of(NavigationService.navigatorKey.currentContext!).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Ruta optima para ${selectedVehicle.matricula}, desde ${vertexFrom!.name} hasta ${vertexTo!.name}",
+              ),
+            ),
+          );
         } else {
           ScaffoldMessenger.of(
             NavigationService.navigatorKey.currentContext!,
-          ).showSnackBar(SnackBar(content: Text("ruta para no existe camino")));
+          ).showSnackBar(SnackBar(content: Text("No existe ruta para esos vertices")));
         }
       } else {
         // XD

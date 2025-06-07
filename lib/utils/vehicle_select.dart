@@ -12,13 +12,23 @@ Future<Vehicle?> showVehicleModal(
   return await showModalBottomSheet<Vehicle>(
     context: context,
     isScrollControlled: true, // Permite scroll si hay muchos elementos
+    useSafeArea: true,
+    constraints: BoxConstraints.loose(
+      Size(MediaQuery.sizeOf(context).width, MediaQuery.sizeOf(context).height * 0.6),
+    ),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (context) {
       // example just in case
       if (vehicles.isEmpty) {
         employees.add(Employee(id: -69, name: 'John', lastName: 'Doe', cid: '69.696.696'));
         vehicles.add(
-          Vehicle(id: -69, idEmployee: -69, via: Dimension.land, maxCargoKg: 30, matricula: ''),
+          Vehicle(
+            id: -69,
+            idEmployee: -69,
+            via: Dimension.land,
+            maxCargoKg: 30,
+            matricula: 'S3X0ST',
+          ),
         );
       }
 
@@ -28,7 +38,7 @@ Future<Vehicle?> showVehicleModal(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Selecciona un Vehiculo para la ruta",
+              "Selecciona un vehiculo para la ruta",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
@@ -49,7 +59,7 @@ Future<Vehicle?> showVehicleModal(
                     ),
                     title: Text('${thisVehicleEmployee.name} - ${vehicle.matricula}'),
                     subtitle: Text(
-                      '#${vehicle.id} - ${_getViaLabel(vehicle.via)} - Max: ${vehicle.maxCargoKg}',
+                      '#${vehicle.id} | ${_getViaLabel(vehicle.via)} | Max: ${vehicle.maxCargoKg}',
                     ),
                     onTap: () {
                       Navigator.pop(context, vehicle); // Cierra el modal
