@@ -24,8 +24,6 @@ class DebugProvider extends ChangeNotifier {
   }
 
   void setCurrentZoom(double value) {
-    if (!showDebug) return; // avoid updating if not shower
-
     currentZoom = value;
     notifyListeners();
   }

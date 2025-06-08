@@ -22,6 +22,19 @@ class Vertex extends Marker {
     this.address,
     this.rif,
   });
+
+  @override
+  String toString() {
+    return '[#$id:$name]';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return (other is Vertex) && (other.id == id) && (other.point == point);
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 enum VertextIconSelection { from, to }

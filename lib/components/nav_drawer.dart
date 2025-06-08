@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:proyecto_grafitos/pages/log_page.dart';
 import 'package:proyecto_grafitos/provider/debug_provider.dart';
 import 'package:proyecto_grafitos/provider/settings_provider.dart';
 
@@ -11,6 +12,7 @@ class NavDrawer extends StatelessWidget {
     final debugToggle = context.select<DebugProvider, bool>((p) => p.showDebug);
     final externalAPIToggle = context.select<DebugProvider, bool>((p) => p.useExternalProvider);
     final aStar = context.select<DebugProvider, bool>((p) => p.useAStar);
+    final hasLastLog = context.select<SettingsProvider, bool>((p) => p.lastLog != null);
 
     return NavigationDrawer(
       children: [
@@ -62,7 +64,17 @@ class NavDrawer extends StatelessWidget {
             title: Text('Recargar VertexData'),
             onTap: () {
               context.read<SettingsProvider>().loadDBData();
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('reloaded')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('reloading')));
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 0, 10),
+          child: ListTile(
+            title: Text('Logs'),
+            enabled: hasLastLog,
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => LogPage()));
             },
           ),
         ),

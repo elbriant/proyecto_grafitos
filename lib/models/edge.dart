@@ -11,10 +11,15 @@ class Edge extends Polyline {
     required this.lengthWeight,
     super.strokeWidth = 3.5,
     super.pattern = const StrokePattern.solid(),
-    super.color = Colors.black54,
+    super.color = const Color.fromARGB(40, 0, 0, 0),
     super.borderStrokeWidth = 0.0,
     super.borderColor = Colors.black,
   });
+
+  @override
+  String toString() {
+    return '[path-${super.points.length}p]';
+  }
 }
 
 class EdgeTime extends Polyline {

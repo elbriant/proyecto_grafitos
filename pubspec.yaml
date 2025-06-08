@@ -24,12 +24,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_map_marker_cluster:
+    path: './packages/flutter_map_marker_cluster'
 
   sqflite: ^2.4.2
   flutter_map: ^8.1.1
   latlong2: ^0.9.1
   provider: ^6.1.5
   path: ^1.9.1
+  expandable_text: ^2.3.0
 
 dev_dependencies:
   flutter_test:

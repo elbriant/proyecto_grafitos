@@ -1,9 +1,17 @@
+import 'dart:convert';
+import 'dart:core';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:proyecto_grafitos/api/astar.dart';
 import 'package:proyecto_grafitos/api/dijkstra.dart';
 import 'package:proyecto_grafitos/global_data.dart';
+import 'package:proyecto_grafitos/models/algorithm_result.dart';
+import 'package:proyecto_grafitos/models/astar_result.dart';
+import 'package:proyecto_grafitos/models/dijkstra_result.dart';
 import 'package:proyecto_grafitos/models/edge.dart';
 import 'package:proyecto_grafitos/models/employee.dart';
 import 'package:proyecto_grafitos/models/grafo.dart';
@@ -14,9 +22,19 @@ import 'package:sqflite/sqflite.dart';
 
 enum SelectButton { from, to }
 
-enum SearchMode { time, length }
+enum SearchMode {
+  time,
+  length;
+
+  @override
+  String toString() {
+    return this == time ? 'tiempo' : 'distancia';
+  }
+}
 
 enum Dimension { land, maritime, aerial }
+
+Map<Vertex, DijkstraResult> dijkstraCache = {};
 
 class SettingsProvider extends ChangeNotifier {
   SelectButton? buttonSelection;
@@ -31,12 +49,18 @@ class SettingsProvider extends ChangeNotifier {
   EdgeTime? pathTime;
   bool isdbLoaded = false;
   bool isPathLoading = false;
+  List<String>? lastLog;
 
   Vertex? vertexFrom;
   Vertex? vertexTo;
 
   void setButtonSelection(SelectButton? value) {
     buttonSelection = value;
+    notifyListeners();
+  }
+
+  void setLastLog(List<String>? log) {
+    lastLog = log;
     notifyListeners();
   }
 
@@ -60,6 +84,13 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   void _setVertexEdges({required List<Vertex> ver, required List<Edge> edg, bool? dbValue}) {
+    //paths and selected vertex also should be nulled
+    vertexFrom = null;
+    vertexTo = null;
+    pathLength = null;
+    pathTime = null;
+    isPathLoading = false;
+
     vertex = ver;
     edges = edg;
     if (dbValue != null) {
@@ -104,52 +135,13 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> loadDBData() async {
     setDBLoaded(false);
-    Database db = await openDatabase('database.db');
 
-    List<Map<String, Object?>> rawEmployees = await db.rawQuery('SELECT * FROM empleados');
-    List<Map<String, Object?>> rawVehicles = await db.rawQuery('SELECT * FROM vehiculo');
+    final sex = await compute(computeDatabase, ServicesBinding.rootIsolateToken!);
 
-    employees = rawEmployees.map((rawE) => Employee.fromDB(rawE)).toList();
-    vehicles = rawVehicles.map((rawV) => Vehicle.fromDB(rawV)).toList();
+    employees = sex.employees;
+    vehicles = sex.vehicles;
 
-    List<Map<String, Object?>> rawEdges = await db.rawQuery('SELECT * FROM caminos');
-    List<Map<String, Object?>> rawVertex = await db.rawQuery('SELECT * FROM nodos');
-
-    List<Edge> processedEdges =
-        rawEdges.map((rawPath) {
-          var rawCityOrigin = rawVertex.firstWhere((e) => e['idNodos'] == rawPath['idNodoOrigen']);
-          var rawCityDestiny = rawVertex.firstWhere(
-            (e) => e['idNodos'] == rawPath['idNodoDestino'],
-          );
-
-          return Edge(
-            trafficWeight: rawPath['trafico'] as double,
-            lengthWeight: rawPath['distancia'] as double,
-            points: [
-              LatLng(rawCityOrigin['latitud'] as double, rawCityOrigin['longitud'] as double),
-              LatLng(rawCityDestiny['latitud'] as double, rawCityDestiny['longitud'] as double),
-            ],
-          );
-        }).toList();
-
-    List<Vertex> processedVertex =
-        rawVertex
-            .map(
-              (rawVertex) => Vertex(
-                id: rawVertex['idNodos'] as int,
-                name: rawVertex['nombre'] as String,
-                address: rawVertex['direccion'] as String?,
-                rif: rawVertex['rif'] as String?,
-                point: LatLng(rawVertex['latitud'] as double, rawVertex['longitud'] as double),
-                child: VertextIcon(
-                  isCity: (rawVertex['esCiudad'] as int) == 1 ? true : false,
-                  vertexId: rawVertex['idNodos'] as int,
-                ),
-              ),
-            )
-            .toList();
-
-    _setVertexEdges(ver: processedVertex, edg: processedEdges, dbValue: true);
+    _setVertexEdges(ver: sex.vertex, edg: sex.edges, dbValue: true);
   }
 
   Future<void> searchPath(bool useExternal, bool useAStar) async {
@@ -169,10 +161,8 @@ class SettingsProvider extends ChangeNotifier {
       }
 
       isPathLoading = true;
-      notifyListeners();
+      setPath(null, null);
 
-      // TODO: implement logging of algoryhtm
-      // TODO: implement compute to nice detail
       final graph = Graph(vertex, edges);
       if (!useExternal) {
         List<Vertex> pathResult = [];
@@ -185,17 +175,28 @@ class SettingsProvider extends ChangeNotifier {
             continue;
           }
 
+          late AlgorithmResult result;
+
           if (useAStar) {
-            final resultA = aStar(graph, vertexFrom!, vertexTo!, mode);
-            pathResult = resultA.reconstructPath(vertexFrom!, vertexTo!);
-            totalWeight = resultA.getPathCost(vertexTo!);
+            result = await compute(
+              computeAStar,
+              ComputeAStarInput(graph: graph, from: vertexFrom!, to: vertexTo!, mode: mode),
+            );
           } else {
-            final resultD = dijkstra(graph, vertexFrom!, mode);
-            pathResult = resultD.getShortestPath(vertexFrom!, vertexTo!);
-            totalWeight = resultD.getPathCost(vertexTo!);
+            //dijkstra can be cached :0
+            if (dijkstraCache.containsKey(vertexFrom!)) {
+              result = dijkstraCache[vertexFrom!]!;
+            } else {
+              result = await compute(
+                computeDijkstra,
+                ComputeDijkstraInput(graph: graph, from: vertexFrom!, mode: mode),
+              );
+              dijkstraCache[vertexFrom!] = result as DijkstraResult;
+            }
           }
-          // print('Camino más corto por ${mode}: $pathResult');
-          // print('Peso total (distancia o tráfico): ${resultD.distances[vertexTo]}');
+          pathResult = result.reconstructPath(vertexFrom!, vertexTo!);
+          totalWeight = result.getPathCost(vertexTo!);
+          setLastLog(result.log);
           final resbol = setPath(
             pathResult,
             mode,
@@ -286,4 +287,106 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
     return true;
   }
+}
+
+class ComputeDatabaseResult {
+  final List<Vertex> vertex;
+  final List<Edge> edges;
+  final List<Employee> employees;
+  final List<Vehicle> vehicles;
+
+  ComputeDatabaseResult({
+    required this.vertex,
+    required this.edges,
+    required this.employees,
+    required this.vehicles,
+  });
+}
+
+Future<ComputeDatabaseResult> computeDatabase(RootIsolateToken dummy) async {
+  BackgroundIsolateBinaryMessenger.ensureInitialized(dummy);
+
+  databaseFactory = databaseFactorySqflitePlugin;
+
+  Database db = await openDatabase('database.db');
+
+  List<Map<String, Object?>> rawEmployees = await db.rawQuery('SELECT * FROM empleados');
+  List<Map<String, Object?>> rawVehicles = await db.rawQuery('SELECT * FROM vehiculo');
+
+  final employees = rawEmployees.map((rawE) => Employee.fromDB(rawE)).toList();
+  final vehicles = rawVehicles.map((rawV) => Vehicle.fromDB(rawV)).toList();
+
+  List<Map<String, Object?>> rawEdges = await db.rawQuery('SELECT * FROM caminos');
+  List<Map<String, Object?>> rawVertex = await db.rawQuery('SELECT * FROM nodos');
+
+  List<Edge> processedEdges =
+      rawEdges.map((rawPath) {
+        final rawCitiesArray = jsonDecode(rawPath['ruta'] as String) as List<dynamic>;
+
+        return Edge(
+          trafficWeight: rawPath['trafico'] as double,
+          lengthWeight: rawPath['distancia'] as double,
+          points:
+              rawCitiesArray.map((c) {
+                var rawCity = rawVertex.firstWhere((e) => e['idNodos'] == c);
+                return LatLng(rawCity['latitud'] as double, rawCity['longitud'] as double);
+              }).toList(),
+        );
+      }).toList();
+
+  List<Vertex> processedVertex =
+      rawVertex
+          .map(
+            (rawVertex) => Vertex(
+              id: rawVertex['idNodos'] as int,
+              name: rawVertex['nombre'] as String,
+              address: rawVertex['direccion'] as String?,
+              rif: rawVertex['rif'] as String?,
+              point: LatLng(rawVertex['latitud'] as double, rawVertex['longitud'] as double),
+              child: VertextIcon(
+                isCity: (rawVertex['esCiudad'] as int) == 1 ? true : false,
+                vertexId: rawVertex['idNodos'] as int,
+              ),
+            ),
+          )
+          .toList();
+
+  return ComputeDatabaseResult(
+    employees: employees,
+    vehicles: vehicles,
+    edges: processedEdges,
+    vertex: processedVertex,
+  );
+}
+
+class ComputeAStarInput {
+  final Graph graph;
+  final Vertex from;
+  final Vertex to;
+  final SearchMode mode;
+
+  ComputeAStarInput({
+    required this.graph,
+    required this.from,
+    required this.to,
+    required this.mode,
+  });
+}
+
+AStarResult computeAStar(ComputeAStarInput input) {
+  final res = aStar(input.graph, input.from, input.to, input.mode);
+  return res;
+}
+
+class ComputeDijkstraInput {
+  final Graph graph;
+  final Vertex from;
+  final SearchMode mode;
+
+  ComputeDijkstraInput({required this.graph, required this.from, required this.mode});
+}
+
+DijkstraResult computeDijkstra(ComputeDijkstraInput input) {
+  final res = dijkstra(input.graph, input.from, input.mode);
+  return res;
 }

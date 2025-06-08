@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_grafitos/global_data.dart' show NavigationService;
@@ -17,6 +18,8 @@ class MapWidget extends StatefulWidget {
 
 class MapWidgetState extends State<MapWidget> {
   late MapController mapController;
+  Polyline? lastPT;
+  Polyline? lastPL;
 
   @override
   void initState() {
@@ -73,11 +76,29 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final pathTime = context.read<SettingsProvider>().pathTime;
+    final pathLength = context.read<SettingsProvider>().pathLength;
+    if ((pathTime != null || pathLength != null) && (pathTime != lastPT || pathLength != lastPL)) {
+      mapController.fitCamera(
+        CameraFit.coordinates(
+          coordinates: [...?pathTime?.points, ...?pathLength?.points].nonNulls.toList(),
+          padding: EdgeInsets.all(72.0),
+          maxZoom: 18,
+          minZoom: 0.5,
+        ),
+      );
+      lastPT = pathTime;
+      lastPL = pathLength;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isdbLoaded = context.select<SettingsProvider, bool>((p) => p.isdbLoaded);
-    final isPathLoading = context.select<SettingsProvider, bool>((p) => p.isPathLoading);
 
-    if (!isdbLoaded || isPathLoading) {
+    if (!isdbLoaded) {
       return Center(child: CircularProgressIndicator());
     }
 
@@ -98,16 +119,7 @@ class MapWidgetState extends State<MapWidget> {
     final pathTime = context.select<SettingsProvider, Polyline?>((p) => p.pathTime);
     final pathLength = context.select<SettingsProvider, Polyline?>((p) => p.pathLength);
 
-    if (pathTime != null || pathLength != null) {
-      mapController.fitCamera(
-        CameraFit.coordinates(
-          coordinates: [...?pathTime?.points, ...?pathLength?.points].nonNulls.toList(),
-          padding: EdgeInsets.all(72.0),
-          maxZoom: 18,
-          minZoom: 0.5,
-        ),
-      );
-    }
+    final zoomLv = context.select<DebugProvider, double>((p) => p.currentZoom);
 
     return FlutterMap(
       mapController: mapController,
@@ -132,9 +144,34 @@ class MapWidgetState extends State<MapWidget> {
           urlTemplate: getDimension(dimension), // For demonstration only
           userAgentPackageName: 'com.example.proyecto_grafitos',
         ),
-        PolylineLayer(polylines: edges),
+        if (zoomLv > 6.5) PolylineLayer(polylines: edges),
         PolylineLayer(polylines: [pathTime, pathLength].nonNulls.toList()),
-        MarkerLayer(markers: vertex, rotate: true, alignment: Alignment(0, -0.6)),
+        MarkerClusterLayerWidget(
+          options: MarkerClusterLayerOptions(
+            maxClusterRadius: 45,
+            size: const Size(40, 40),
+            alignment: Alignment(0, -0.6),
+            padding: const EdgeInsets.all(50),
+            maxZoom: 15,
+            rotate: true,
+            markers: vertex,
+            showPolygon: false,
+            builder: (context, markers) {
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.blue,
+                ),
+                child: Center(
+                  child: Text(
+                    markers.length.toString(),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
