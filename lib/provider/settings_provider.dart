@@ -204,6 +204,8 @@ class SettingsProvider extends ChangeNotifier {
                 )
                 : null;
 
+        setLastLog([...?resultByTime?.log, ...?resultByLength?.log]);
+
         final successAtLeastOne = [
           resultByTime,
           resultByLength,
