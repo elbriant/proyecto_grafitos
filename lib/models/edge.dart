@@ -26,8 +26,8 @@ class EdgeTime extends Polyline {
   EdgeTime({
     required super.points,
     super.strokeWidth = 3,
-    super.pattern = const StrokePattern.dotted(),
-    super.color = Colors.yellow,
+    super.pattern = const StrokePattern.solid(),
+    super.color = const Color.fromARGB(255, 255, 246, 145),
     super.borderStrokeWidth = 0.5,
     super.borderColor = Colors.black,
     super.strokeCap = StrokeCap.round,
@@ -39,8 +39,21 @@ class EdgeLength extends Polyline {
   EdgeLength({
     required super.points,
     super.strokeWidth = 3,
-    super.pattern = const StrokePattern.dotted(),
-    super.color = Colors.purpleAccent,
+    super.pattern = const StrokePattern.solid(),
+    super.color = const Color.fromARGB(255, 37, 182, 218),
+    super.borderStrokeWidth = 0.5,
+    super.borderColor = Colors.black,
+    super.strokeCap = StrokeCap.round,
+    super.strokeJoin = StrokeJoin.round,
+  });
+}
+
+class EdgeAll extends Polyline {
+  EdgeAll({
+    required super.points,
+    super.strokeWidth = 3,
+    super.pattern = const StrokePattern.solid(),
+    super.color = const Color.fromARGB(255, 216, 67, 87),
     super.borderStrokeWidth = 0.5,
     super.borderColor = Colors.black,
     super.strokeCap = StrokeCap.round,

@@ -38,6 +38,11 @@ class DijkstraResult extends AlgorithmResult {
     return path;
   }
 
+  @override
+  bool existPath(Vertex start, Vertex target) {
+    return reconstructPath(start, target).isNotEmpty;
+  }
+
   /// Obtiene la distancia total del camino más corto al nodo especificado
   /// [target] nodo destino
   @override

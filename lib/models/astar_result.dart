@@ -33,6 +33,11 @@ class AStarResult extends AlgorithmResult {
     return path;
   }
 
+  @override
+  bool existPath(Vertex start, Vertex target) {
+    return reconstructPath(start, target).isNotEmpty;
+  }
+
   /// Obtiene el coste total del camino hasta el nodo especificado
   /// [target] nodo destino
   @override

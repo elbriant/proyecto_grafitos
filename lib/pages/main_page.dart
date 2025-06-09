@@ -6,6 +6,7 @@ import 'package:proyecto_grafitos/components/dimension_tools.dart';
 import 'package:proyecto_grafitos/components/loading_widget.dart';
 import 'package:proyecto_grafitos/components/map_widget.dart';
 import 'package:proyecto_grafitos/components/nav_drawer.dart';
+import 'package:proyecto_grafitos/components/route_report.dart';
 import 'package:proyecto_grafitos/provider/debug_provider.dart';
 import 'package:proyecto_grafitos/provider/settings_provider.dart';
 
@@ -16,6 +17,7 @@ class MainPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final showDebug = context.select<DebugProvider, bool>((p) => p.showDebug);
     final isPathLoading = context.select<SettingsProvider, bool>((p) => p.isPathLoading);
+    final existPathMetadata = context.select<SettingsProvider, bool>((p) => p.pathMetadata != null);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,6 +31,7 @@ class MainPage extends StatelessWidget {
           MapWidget(),
           BottomTools(),
           Align(alignment: Alignment.topRight, child: DimensionTools()),
+          if (existPathMetadata) Align(alignment: Alignment.topCenter, child: RouteReport()),
           if (isPathLoading) LoadingWidget(),
           Visibility(visible: showDebug, child: DebugInfo()),
         ],

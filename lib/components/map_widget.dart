@@ -118,6 +118,7 @@ class MapWidgetState extends State<MapWidget> {
 
     final pathTime = context.select<SettingsProvider, Polyline?>((p) => p.pathTime);
     final pathLength = context.select<SettingsProvider, Polyline?>((p) => p.pathLength);
+    final pathAll = context.select<SettingsProvider, Polyline?>((p) => p.pathAll);
 
     final zoomLv = context.select<DebugProvider, double>((p) => p.currentZoom);
 
@@ -145,7 +146,7 @@ class MapWidgetState extends State<MapWidget> {
           userAgentPackageName: 'com.example.proyecto_grafitos',
         ),
         if (zoomLv > 6.5) PolylineLayer(polylines: edges),
-        PolylineLayer(polylines: [pathTime, pathLength].nonNulls.toList()),
+        PolylineLayer(polylines: [pathTime, pathLength, pathAll].nonNulls.toList()),
         MarkerClusterLayerWidget(
           options: MarkerClusterLayerOptions(
             maxClusterRadius: 45,

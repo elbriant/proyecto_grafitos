@@ -6,5 +6,7 @@ abstract class AlgorithmResult {
   AlgorithmResult(this.log);
 
   List<Vertex> reconstructPath(Vertex start, Vertex target);
+  bool existPath(Vertex start, Vertex target);
   double getPathCost(Vertex target);
+
 }

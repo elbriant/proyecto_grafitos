@@ -4,7 +4,6 @@ import 'dart:core';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:proyecto_grafitos/api/astar.dart';
 import 'package:proyecto_grafitos/api/dijkstra.dart';
@@ -15,8 +14,10 @@ import 'package:proyecto_grafitos/models/dijkstra_result.dart';
 import 'package:proyecto_grafitos/models/edge.dart';
 import 'package:proyecto_grafitos/models/employee.dart';
 import 'package:proyecto_grafitos/models/grafo.dart';
+import 'package:proyecto_grafitos/models/path_metadata.dart';
 import 'package:proyecto_grafitos/models/vehicle.dart';
 import 'package:proyecto_grafitos/models/vertex.dart';
+import 'package:proyecto_grafitos/utils/distance_calc.dart';
 import 'package:proyecto_grafitos/utils/vehicle_select.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -47,6 +48,8 @@ class SettingsProvider extends ChangeNotifier {
   Dimension dimension = Dimension.land;
   EdgeLength? pathLength;
   EdgeTime? pathTime;
+  EdgeAll? pathAll;
+  PathMetadata? pathMetadata;
   bool isdbLoaded = false;
   bool isPathLoading = false;
   List<String>? lastLog;
@@ -64,6 +67,20 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPathMetadata(PathMetadata? data) {
+    pathMetadata = data;
+    notifyListeners();
+  }
+
+  void resetPath() {
+    pathMetadata = null;
+    pathLength = null;
+    pathTime = null;
+    pathAll = null;
+
+    notifyListeners();
+  }
+
   void setDimension(Dimension value) {
     if (dimension == value) return;
 
@@ -72,6 +89,7 @@ class SettingsProvider extends ChangeNotifier {
     vertexTo = null;
     pathLength = null;
     pathTime = null;
+    pathAll = null;
 
     dimension = value;
     notifyListeners();
@@ -161,53 +179,55 @@ class SettingsProvider extends ChangeNotifier {
       }
 
       isPathLoading = true;
-      setPath(null, null);
+      setPath(newPathLength: null, newPathTime: null);
 
       final graph = Graph(vertex, edges);
       if (!useExternal) {
-        List<Vertex> pathResult = [];
-        double totalWeight = double.infinity;
-        bool successAtLeastOne = false;
+        final resultByTime =
+            (searchMode.isEmpty || searchMode.contains(SearchMode.time))
+                ? await searchPathByMode(
+                  graph: graph,
+                  vertexFrom: vertexFrom!,
+                  vertexTo: vertexTo!,
+                  useAStar: useAStar,
+                  mode: SearchMode.time,
+                )
+                : null;
+        final resultByLength =
+            (searchMode.isEmpty || searchMode.contains(SearchMode.time))
+                ? await searchPathByMode(
+                  graph: graph,
+                  vertexFrom: vertexFrom!,
+                  vertexTo: vertexTo!,
+                  useAStar: useAStar,
+                  mode: SearchMode.time,
+                )
+                : null;
 
-        // do both and skip if one is selected
-        for (SearchMode mode in SearchMode.values) {
-          if (searchMode.isNotEmpty && mode != searchMode.first) {
-            continue;
-          }
+        final successAtLeastOne = [
+          resultByTime,
+          resultByLength,
+        ].any((res) => res?.existPath(vertexFrom!, vertexTo!) ?? false);
 
-          late AlgorithmResult result;
-
-          if (useAStar) {
-            result = await compute(
-              computeAStar,
-              ComputeAStarInput(graph: graph, from: vertexFrom!, to: vertexTo!, mode: mode),
-            );
-          } else {
-            //dijkstra can be cached :0
-            if (dijkstraCache.containsKey(vertexFrom!)) {
-              result = dijkstraCache[vertexFrom!]!;
-            } else {
-              result = await compute(
-                computeDijkstra,
-                ComputeDijkstraInput(graph: graph, from: vertexFrom!, mode: mode),
-              );
-              dijkstraCache[vertexFrom!] = result as DijkstraResult;
-            }
-          }
-          pathResult = result.reconstructPath(vertexFrom!, vertexTo!);
-          totalWeight = result.getPathCost(vertexTo!);
-          setLastLog(result.log);
-          final resbol = setPath(
-            pathResult,
-            mode,
-            totalWeight: totalWeight,
-            omitNullingLast: searchMode.isEmpty,
-          );
-          if (resbol) {
-            successAtLeastOne = resbol;
-          }
-        }
         if (successAtLeastOne) {
+          setPath(
+            newPathLength: resultByLength?.reconstructPath(vertexFrom!, vertexTo!),
+            newPathTime: resultByTime?.reconstructPath(vertexFrom!, vertexTo!),
+            silent: true,
+          );
+          final double leastKmPossible =
+              pathAll?.calculateTotalDistance() ??
+              pathLength?.calculateTotalDistance() ??
+              pathTime!.calculateTotalDistance();
+          final double kmForleastTimePossible =
+              pathAll?.calculateTotalDistance() ??
+              pathTime?.calculateTotalDistance() ??
+              pathLength!.calculateTotalDistance();
+          pathMetadata = PathMetadata(
+            vehicle: selectedVehicle,
+            totalDistanceInKm: leastKmPossible,
+            estimatedTime: estimateTravelTime(kmForleastTimePossible, selectedVehicle.via),
+          );
           ScaffoldMessenger.of(NavigationService.navigatorKey.currentContext!).showSnackBar(
             SnackBar(
               content: Text(
@@ -216,6 +236,7 @@ class SettingsProvider extends ChangeNotifier {
             ),
           );
         } else {
+          pathMetadata = null;
           ScaffoldMessenger.of(
             NavigationService.navigatorKey.currentContext!,
           ).showSnackBar(SnackBar(content: Text("No existe ruta para esos vertices")));
@@ -231,61 +252,55 @@ class SettingsProvider extends ChangeNotifier {
       ScaffoldMessenger.of(
         NavigationService.navigatorKey.currentContext!,
       ).showSnackBar(SnackBar(content: Text("falta algun vertice")));
-      setPath(null, null);
+      setPath(newPathLength: null, newPathTime: null);
     }
   }
 
-  /// returns true if success
-  bool setPath(
-    List<Vertex>? path,
-    SearchMode? mode, {
-    double? totalWeight,
-    bool omitNullingLast = false,
-  }) {
-    if (!omitNullingLast) {
+  void setPath({List<Vertex>? newPathTime, List<Vertex>? newPathLength, bool silent = false}) {
+    if (newPathTime != null && newPathLength != null && listEquals(newPathTime, newPathLength)) {
+      pathAll = EdgeAll(points: newPathLength.map((v) => v.point).toList());
       pathLength = null;
       pathTime = null;
+    } else {
+      pathAll = null;
+      pathLength =
+          newPathLength != null
+              ? EdgeLength(points: newPathLength.map((v) => v.point).toList())
+              : null;
+      pathTime =
+          newPathTime != null ? EdgeTime(points: newPathTime.map((v) => v.point).toList()) : null;
     }
-
-    if (mode == null && path == null) {
-      //reset both
-      pathLength = null;
-      pathTime = null;
+    if (!silent) {
       notifyListeners();
-      return true;
     }
+  }
 
-    if ((path?.isEmpty ?? false) && totalWeight == double.infinity) {
-      //doesnt exists
-      pathLength = null;
-      pathTime = null;
-      notifyListeners();
-      return false;
+  static Future<AlgorithmResult> searchPathByMode({
+    required Graph graph,
+    required Vertex vertexFrom,
+    required Vertex vertexTo,
+    required SearchMode mode,
+    bool useAStar = true,
+  }) async {
+    late AlgorithmResult result;
+    if (useAStar) {
+      result = await compute(
+        computeAStar,
+        ComputeAStarInput(graph: graph, from: vertexFrom, to: vertexTo, mode: mode),
+      );
+    } else {
+      //dijkstra can be cached :0
+      if (dijkstraCache.containsKey(vertexFrom)) {
+        result = dijkstraCache[vertexFrom]!;
+      } else {
+        result = await compute(
+          computeDijkstra,
+          ComputeDijkstraInput(graph: graph, from: vertexFrom, mode: mode),
+        );
+        dijkstraCache[vertexFrom] = result as DijkstraResult;
+      }
     }
-
-    switch (mode) {
-      case SearchMode.length:
-        pathLength = path != null ? EdgeLength(points: path.map((v) => v.point).toList()) : null;
-      case SearchMode.time:
-        pathTime =
-            path != null
-                ? EdgeTime(
-                  points: path.map((v) => v.point).toList(),
-                  pattern: StrokePattern.dashed(segments: [6.0, 6.0]),
-                )
-                : null;
-      default:
-        pathLength = path != null ? EdgeLength(points: path.map((v) => v.point).toList()) : null;
-        pathTime =
-            path != null
-                ? EdgeTime(
-                  points: path.map((v) => v.point).toList(),
-                  pattern: StrokePattern.dashed(segments: [6.0, 6.0]),
-                )
-                : null;
-    }
-    notifyListeners();
-    return true;
+    return result;
   }
 }
 
