@@ -194,13 +194,13 @@ class SettingsProvider extends ChangeNotifier {
                 )
                 : null;
         final resultByLength =
-            (searchMode.isEmpty || searchMode.contains(SearchMode.time))
+            (searchMode.isEmpty || searchMode.contains(SearchMode.length))
                 ? await searchPathByMode(
                   graph: graph,
                   vertexFrom: vertexFrom!,
                   vertexTo: vertexTo!,
                   useAStar: useAStar,
-                  mode: SearchMode.time,
+                  mode: SearchMode.length,
                 )
                 : null;
 
