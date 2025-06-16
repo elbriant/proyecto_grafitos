@@ -84,6 +84,7 @@ class BottomTools extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(child: ModeSelection()),
+              SizedBox(width: 20),
               FloatingActionButton.extended(
                 backgroundColor:
                     pathIsShowing ? Theme.of(context).colorScheme.errorContainer : null,

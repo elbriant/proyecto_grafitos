@@ -16,14 +16,16 @@ class ModeSelection extends StatelessWidget {
 
     if (pathIsShowing) {
       return Container(
-        height: 42,
-        margin: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 8.0),
+        height: 36,
+        margin: const EdgeInsets.all(8.0),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12.0),
+          borderRadius: BorderRadius.circular(16.0),
           border: BoxBorder.all(
-            color: Theme.of(context).colorScheme.primary,
+            color: Theme.of(context).colorScheme.onSurface,
+            width: 1.2,
             strokeAlign: BorderSide.strokeAlignOutside,
           ),
+          boxShadow: kElevationToShadow[4],
         ),
         clipBehavior: Clip.hardEdge,
         child: Row(
@@ -34,12 +36,14 @@ class ModeSelection extends StatelessWidget {
                     Expanded(
                       child: DecoratedBox(
                         decoration: BoxDecoration(color: Colors.redAccent),
-                        child: Text(
-                          'Distancia',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
+                        child: Center(
+                          child: Text(
+                            'Distancia y Tiempo',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       ),
@@ -53,9 +57,20 @@ class ModeSelection extends StatelessWidget {
                           child: Center(
                             child: Text(
                               'Distancia',
-                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
+                        ),
+                      ),
+                    if (pathLength != null && pathTime != null)
+                      SizedBox(
+                        width: 2,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface),
                         ),
                       ),
                     if (pathTime != null)
@@ -67,7 +82,11 @@ class ModeSelection extends StatelessWidget {
                           child: Center(
                             child: Text(
                               'Tiempo',
-                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                         ),

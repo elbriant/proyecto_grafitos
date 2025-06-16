@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:proyecto_grafitos/models/employee.dart';
 import 'package:proyecto_grafitos/models/vehicle.dart';
 import 'package:proyecto_grafitos/provider/settings_provider.dart';
@@ -18,18 +19,15 @@ Future<Vehicle?> showVehicleModal(
     ),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (context) {
+      final dimension = context.read<SettingsProvider>().dimension;
       // example just in case
       if (vehicles.isEmpty) {
         employees.add(Employee(id: -69, name: 'John', lastName: 'Doe', cid: '69.696.696'));
         vehicles.add(
-          Vehicle(
-            id: -69,
-            idEmployee: -69,
-            via: Dimension.land,
-            maxCargoKg: 30,
-            matricula: 'S3X0ST',
-          ),
+          Vehicle(id: -69, idEmployee: -69, via: dimension, maxCargoKg: 30, matricula: 'S3X0ST'),
         );
+      } else {
+        vehicles = vehicles.where((v) => v.via == dimension).toList();
       }
 
       return Container(
