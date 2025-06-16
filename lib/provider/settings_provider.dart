@@ -33,7 +33,18 @@ enum SearchMode {
   }
 }
 
-enum Dimension { land, maritime, aerial }
+enum Dimension {
+  land,
+  maritime,
+  aerial;
+
+  static Dimension fromString(String other) => switch (other.toLowerCase()) {
+    't' => land,
+    'a' => aerial,
+    'm' => maritime,
+    _ => land,
+  };
+}
 
 Map<Vertex, DijkstraResult> dijkstraCache = {};
 
@@ -53,6 +64,7 @@ class SettingsProvider extends ChangeNotifier {
   bool isdbLoaded = false;
   bool isPathLoading = false;
   List<String>? lastLog;
+  bool pathSoftShow = false;
 
   Vertex? vertexFrom;
   Vertex? vertexTo;
@@ -64,6 +76,11 @@ class SettingsProvider extends ChangeNotifier {
 
   void setLastLog(List<String>? log) {
     lastLog = log;
+    notifyListeners();
+  }
+
+  void togglePathSoftShow() {
+    pathSoftShow = !pathSoftShow;
     notifyListeners();
   }
 
@@ -323,8 +340,6 @@ class ComputeDatabaseResult {
 Future<ComputeDatabaseResult> computeDatabase(RootIsolateToken dummy) async {
   BackgroundIsolateBinaryMessenger.ensureInitialized(dummy);
 
-  databaseFactory = databaseFactorySqflitePlugin;
-
   Database db = await openDatabase('database.db');
 
   List<Map<String, Object?>> rawEmployees = await db.rawQuery('SELECT * FROM empleados');
@@ -336,43 +351,40 @@ Future<ComputeDatabaseResult> computeDatabase(RootIsolateToken dummy) async {
   List<Map<String, Object?>> rawEdges = await db.rawQuery('SELECT * FROM caminos');
   List<Map<String, Object?>> rawVertex = await db.rawQuery('SELECT * FROM nodos');
 
+  Map<int, Vertex> processedVertex = {
+    for (Vertex v in rawVertex.map(
+      (rawVertex) => Vertex(
+        id: rawVertex['idNodos'] as int,
+        name: rawVertex['nombre'] as String,
+        address: rawVertex['direccion'] as String?,
+        rif: rawVertex['rif'] as String?,
+        point: LatLng(rawVertex['latitud'] as double, rawVertex['longitud'] as double),
+        child: VertextIcon(
+          isCity: (rawVertex['esCiudad'] as int) == 1 ? true : false,
+          vertexId: rawVertex['idNodos'] as int,
+        ),
+        via: Dimension.fromString(rawVertex['via'] as String),
+      ),
+    ))
+      v.id: v,
+  };
+
   List<Edge> processedEdges =
       rawEdges.map((rawPath) {
         final rawCitiesArray = jsonDecode(rawPath['ruta'] as String) as List<dynamic>;
-
         return Edge(
           trafficWeight: rawPath['trafico'] as double,
           lengthWeight: rawPath['distancia'] as double,
-          points:
-              rawCitiesArray.map((c) {
-                var rawCity = rawVertex.firstWhere((e) => e['idNodos'] == c);
-                return LatLng(rawCity['latitud'] as double, rawCity['longitud'] as double);
-              }).toList(),
+          points: rawCitiesArray.map((c) => processedVertex[c]!.point).toList(),
+          via: Dimension.fromString(rawPath['via'] as String),
         );
       }).toList();
-
-  List<Vertex> processedVertex =
-      rawVertex
-          .map(
-            (rawVertex) => Vertex(
-              id: rawVertex['idNodos'] as int,
-              name: rawVertex['nombre'] as String,
-              address: rawVertex['direccion'] as String?,
-              rif: rawVertex['rif'] as String?,
-              point: LatLng(rawVertex['latitud'] as double, rawVertex['longitud'] as double),
-              child: VertextIcon(
-                isCity: (rawVertex['esCiudad'] as int) == 1 ? true : false,
-                vertexId: rawVertex['idNodos'] as int,
-              ),
-            ),
-          )
-          .toList();
 
   return ComputeDatabaseResult(
     employees: employees,
     vehicles: vehicles,
     edges: processedEdges,
-    vertex: processedVertex,
+    vertex: processedVertex.values.toList(),
   );
 }
 

@@ -6,6 +6,7 @@ import 'package:proyecto_grafitos/provider/settings_provider.dart';
 class Vertex extends Marker {
   final String name;
   final int id;
+  final Dimension via;
   final String? address;
   final String? rif;
 
@@ -13,6 +14,7 @@ class Vertex extends Marker {
     super.key,
     required super.point,
     required super.child,
+    required this.via,
     super.width,
     super.height,
     super.alignment,

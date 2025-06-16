@@ -7,9 +7,21 @@ class DebugProvider extends ChangeNotifier {
   bool useAStar = false;
   double currentZoom = 1.0;
   LatLng? lastPoint;
+  bool forceHideVertex = false;
+  bool forceShowEdges = false;
 
   void toggleShowDebug() {
     showDebug = !showDebug;
+    notifyListeners();
+  }
+
+  void toggleForceHideVertex() {
+    forceHideVertex = !forceHideVertex;
+    notifyListeners();
+  }
+
+  void toggleForceShowEdges() {
+    forceShowEdges = !forceShowEdges;
     notifyListeners();
   }
 

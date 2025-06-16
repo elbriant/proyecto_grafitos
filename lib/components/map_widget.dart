@@ -20,6 +20,7 @@ class MapWidgetState extends State<MapWidget> {
   late MapController mapController;
   Polyline? lastPT;
   Polyline? lastPL;
+  Polyline? lastPA;
 
   @override
   void initState() {
@@ -80,10 +81,13 @@ class MapWidgetState extends State<MapWidget> {
     super.didChangeDependencies();
     final pathTime = context.read<SettingsProvider>().pathTime;
     final pathLength = context.read<SettingsProvider>().pathLength;
-    if ((pathTime != null || pathLength != null) && (pathTime != lastPT || pathLength != lastPL)) {
+    final pathAll = context.read<SettingsProvider>().pathAll;
+    if ((pathTime != null || pathLength != null || pathAll != null) &&
+        (pathTime != lastPT || pathLength != lastPL || pathAll != lastPA)) {
       mapController.fitCamera(
         CameraFit.coordinates(
-          coordinates: [...?pathTime?.points, ...?pathLength?.points].nonNulls.toList(),
+          coordinates:
+              [...?pathTime?.points, ...?pathLength?.points, ...?pathAll?.points].nonNulls.toList(),
           padding: EdgeInsets.all(72.0),
           maxZoom: 18,
           minZoom: 0.5,
@@ -91,6 +95,7 @@ class MapWidgetState extends State<MapWidget> {
       );
       lastPT = pathTime;
       lastPL = pathLength;
+      lastPA = pathAll;
     }
   }
 
@@ -103,24 +108,36 @@ class MapWidgetState extends State<MapWidget> {
     }
 
     final dimension = context.select<SettingsProvider, Dimension>((p) => p.dimension);
-
-    // TODO: implement filtering by dimension
-    final edges =
-        context
-            .select<SettingsProvider, List<Edge>>((p) => p.edges)
-            .where((e) => dimension == Dimension.land)
-            .toList();
-    final vertex =
-        context
-            .select<SettingsProvider, List<Vertex>>((p) => p.vertex)
-            .where((e) => dimension == Dimension.land)
-            .toList();
+    final pathIsShowing = context.select<SettingsProvider, bool>((p) => p.pathMetadata != null);
 
     final pathTime = context.select<SettingsProvider, Polyline?>((p) => p.pathTime);
     final pathLength = context.select<SettingsProvider, Polyline?>((p) => p.pathLength);
     final pathAll = context.select<SettingsProvider, Polyline?>((p) => p.pathAll);
+    final completePolyline = [pathTime, pathLength, pathAll].nonNulls.toList();
 
-    final zoomLv = context.select<DebugProvider, double>((p) => p.currentZoom);
+    final edges =
+        context
+            .select<SettingsProvider, List<Edge>>((p) => p.edges)
+            .where((e) => dimension == e.via)
+            .toList();
+    List<Vertex> vertex =
+        context
+            .select<SettingsProvider, List<Vertex>>((p) => p.vertex)
+            .where((e) => dimension == e.via)
+            .toList();
+
+    if (pathIsShowing) {
+      final completePointsList = [for (Polyline poly in completePolyline) ...poly.points];
+      vertex = vertex.where((e) => completePointsList.contains(e.point)).toList();
+    }
+
+    final fromVertex = context.select<SettingsProvider, Vertex?>((p) => p.vertexFrom);
+    final toVertex = context.select<SettingsProvider, Vertex?>((p) => p.vertexTo);
+    final zoomLvThreshold = context.select<DebugProvider, bool>((p) => p.currentZoom > 14);
+
+    final forceHideVertex = context.select<DebugProvider, bool>((p) => p.forceHideVertex);
+    final forceShowEdges = context.select<DebugProvider, bool>((p) => p.forceShowEdges);
+    final softShow = context.select<SettingsProvider, bool>((p) => p.pathSoftShow);
 
     return FlutterMap(
       mapController: mapController,
@@ -142,37 +159,61 @@ class MapWidgetState extends State<MapWidget> {
       ),
       children: [
         TileLayer(
-          urlTemplate: getDimension(dimension), // For demonstration only
+          urlTemplate: getDimension(dimension),
           userAgentPackageName: 'com.example.proyecto_grafitos',
         ),
-        if (zoomLv > 6.5) PolylineLayer(polylines: edges),
-        PolylineLayer(polylines: [pathTime, pathLength, pathAll].nonNulls.toList()),
-        MarkerClusterLayerWidget(
-          options: MarkerClusterLayerOptions(
-            maxClusterRadius: 45,
-            size: const Size(40, 40),
-            alignment: Alignment(0, -0.6),
-            padding: const EdgeInsets.all(50),
-            maxZoom: 15,
-            rotate: true,
-            markers: vertex,
-            showPolygon: false,
-            builder: (context, markers) {
-              return Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.blue,
-                ),
-                child: Center(
-                  child: Text(
-                    markers.length.toString(),
-                    style: const TextStyle(color: Colors.white),
+        if ((softShow && zoomLvThreshold) || forceShowEdges) PolylineLayer(polylines: edges),
+        PolylineLayer(polylines: completePolyline),
+        if (!forceHideVertex)
+          MarkerClusterLayerWidget(
+            options: MarkerClusterLayerOptions(
+              maxClusterRadius: pathIsShowing ? 1 : 75,
+              size: const Size(26, 26),
+              alignment: Alignment(0, -0.6),
+              maxZoom: 18,
+              disableClusteringAtZoom: 17,
+              rotate: true,
+              markers: vertex,
+              showPolygon: false,
+              builder: (context, markers) {
+                if (fromVertex != null && markers.contains(fromVertex)) {
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.redAccent,
+                    ),
+                  );
+                }
+
+                if (toVertex != null && markers.contains(toVertex)) {
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.green,
+                    ),
+                  );
+                }
+
+                if (markers.length > 99) return SizedBox.shrink();
+
+                return Opacity(
+                  opacity: (99 - markers.length) / 99,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.blue,
+                    ),
+                    child: Center(
+                      child: Text(
+                        markers.length.toString(),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }

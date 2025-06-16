@@ -29,86 +29,115 @@ class _DimensionToolsState extends State<DimensionTools> {
   @override
   Widget build(BuildContext context) {
     final dim = context.select<SettingsProvider, Dimension>((p) => p.dimension);
+    final softShow = context.select<SettingsProvider, bool>((p) => p.pathSoftShow);
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Stack(
         alignment: Alignment.topCenter,
         children: [
-          AnimatedContainer(
-            duration: Duration(milliseconds: 350),
-            curve: Curves.fastOutSlowIn,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(99),
-                bottomRight: Radius.circular(99),
+          Align(
+            alignment: Alignment.topRight,
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 350),
+              curve: Curves.fastOutSlowIn,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(99),
+                  bottomRight: Radius.circular(99),
+                ),
               ),
-            ),
-            margin: EdgeInsets.only(top: 18),
-            clipBehavior: Clip.hardEdge,
-            height: choosing ? (28 + 48 * 3) : 0,
-            child: Visibility(
-              maintainSize: true,
-              maintainAnimation: true,
-              maintainState: true,
-              visible: choosing,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(child: const SizedBox(height: 28)),
-                  Flexible(
-                    child: IconButton(
-                      onPressed: () => changeDimension(Dimension.land, context),
-                      icon: Icon(
-                        Icons.landscape,
-                        color: dim == Dimension.land ? Theme.of(context).colorScheme.primary : null,
+              margin: EdgeInsets.only(top: 20, right: 8.0),
+              clipBehavior: Clip.hardEdge,
+              height: choosing ? (28 + 48 * 3) : 0,
+              child: Visibility(
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                visible: choosing,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(child: const SizedBox(height: 28)),
+                    Flexible(
+                      child: IconButton(
+                        onPressed: () => changeDimension(Dimension.land, context),
+                        icon: Icon(
+                          Icons.landscape,
+                          color:
+                              dim == Dimension.land ? Theme.of(context).colorScheme.primary : null,
+                        ),
                       ),
                     ),
-                  ),
-                  Flexible(
-                    child: IconButton(
-                      onPressed: () => changeDimension(Dimension.aerial, context),
-                      icon: Icon(
-                        Icons.air,
-                        color:
-                            dim == Dimension.aerial ? Theme.of(context).colorScheme.primary : null,
+                    Flexible(
+                      child: IconButton(
+                        onPressed: () => changeDimension(Dimension.aerial, context),
+                        icon: Icon(
+                          Icons.air,
+                          color:
+                              dim == Dimension.aerial
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                        ),
                       ),
                     ),
-                  ),
-                  Flexible(
-                    child: IconButton(
-                      onPressed: () => changeDimension(Dimension.maritime, context),
-                      icon: Icon(
-                        Icons.water,
-                        color:
-                            dim == Dimension.maritime
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
+                    Flexible(
+                      child: IconButton(
+                        onPressed: () => changeDimension(Dimension.maritime, context),
+                        icon: Icon(
+                          Icons.water,
+                          color:
+                              dim == Dimension.maritime
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-          ElevatedButton(
-            onPressed: () => toggle(),
-            style: ButtonStyle(
-              side: WidgetStateBorderSide.resolveWith((_) {
-                if (choosing) {
-                  return BorderSide(color: Theme.of(context).colorScheme.primary, width: 2.0);
-                }
-                return null;
-              }),
-              padding: WidgetStatePropertyAll(EdgeInsets.all(12.0)),
-              shape: WidgetStatePropertyAll(CircleBorder()),
+          Align(
+            alignment: Alignment.topRight,
+            child: ElevatedButton(
+              onPressed: () => toggle(),
+              style: ButtonStyle(
+                side: WidgetStateBorderSide.resolveWith((_) {
+                  if (choosing) {
+                    return BorderSide(color: Theme.of(context).colorScheme.primary, width: 2.0);
+                  }
+                  return null;
+                }),
+                padding: WidgetStatePropertyAll(EdgeInsets.all(12.0)),
+                shape: WidgetStatePropertyAll(CircleBorder()),
+              ),
+              child: Icon(switch (dim) {
+                Dimension.land => Icons.landscape,
+                Dimension.aerial => Icons.air,
+                Dimension.maritime => Icons.water,
+              }, size: 24),
             ),
-            child: Icon(switch (dim) {
-              Dimension.land => Icons.landscape,
-              Dimension.aerial => Icons.air,
-              Dimension.maritime => Icons.water,
-            }, size: 24),
+          ),
+          Align(
+            alignment: Alignment.topLeft,
+            child: ElevatedButton(
+              onPressed: () {
+                context.read<SettingsProvider>().togglePathSoftShow();
+              },
+              style: ButtonStyle(
+                side: WidgetStateBorderSide.resolveWith((_) {
+                  if (softShow) {
+                    return BorderSide(color: Theme.of(context).colorScheme.primary, width: 2.0);
+                  }
+                  return null;
+                }),
+                padding: WidgetStatePropertyAll(EdgeInsets.all(12.0)),
+                shape: WidgetStatePropertyAll(CircleBorder()),
+              ),
+              child: Icon(Icons.line_axis, size: 20),
+            ),
           ),
         ],
       ),

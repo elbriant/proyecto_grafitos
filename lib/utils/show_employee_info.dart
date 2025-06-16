@@ -26,7 +26,7 @@ void showEmployeeDialog(BuildContext context, Employee employee) {
               _InfoRow(label: "Nombre", value: employee.name),
               _InfoRow(label: "Apellido", value: employee.lastName),
               _InfoRow(
-                label: "Departamento",
+                label: "Cedula",
                 value: employee.cid.isNotEmpty ? employee.cid : 'No registrado',
               ),
             ],

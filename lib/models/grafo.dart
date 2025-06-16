@@ -25,7 +25,7 @@ class Graph {
       (e) =>
           (e.points.first == source.point && e.points.last == target.point) ||
           (e.points.first == target.point && e.points.last == source.point),
-      orElse: () => Edge(points: [], trafficWeight: 0, lengthWeight: 0),
+      orElse: () => Edge(points: [], trafficWeight: 0, lengthWeight: 0, via: Dimension.land),
     );
 
     switch (searchMode) {

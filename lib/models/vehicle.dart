@@ -19,16 +19,9 @@ class Vehicle {
     return Vehicle(
       id: data['idVehiculo'] as int,
       idEmployee: data['idEmpleados'] as int,
-      via: parseVia(data['medio'] as String),
+      via: Dimension.fromString(data['medio'] as String),
       maxCargoKg: data['cantidadMaxKg'] as double,
       matricula: data['matricula'] as String,
     );
   }
-
-  static Dimension parseVia(String via) => switch (via.toLowerCase()) {
-    'tierra' => Dimension.land,
-    'agua' => Dimension.maritime,
-    'aire' => Dimension.aerial,
-    _ => Dimension.land,
-  };
 }

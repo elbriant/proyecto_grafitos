@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:proyecto_grafitos/provider/settings_provider.dart';
 
 class Edge extends Polyline {
   final double trafficWeight;
   final double lengthWeight;
+  final Dimension via;
 
   Edge({
     required super.points,
     required this.trafficWeight,
     required this.lengthWeight,
+    required this.via,
     super.strokeWidth = 3.5,
     super.pattern = const StrokePattern.solid(),
     super.color = const Color.fromARGB(40, 0, 0, 0),

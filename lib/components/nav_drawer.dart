@@ -13,6 +13,8 @@ class NavDrawer extends StatelessWidget {
     final externalAPIToggle = context.select<DebugProvider, bool>((p) => p.useExternalProvider);
     final aStar = context.select<DebugProvider, bool>((p) => p.useAStar);
     final hasLastLog = context.select<SettingsProvider, bool>((p) => p.lastLog != null);
+    final forceHideVertex = context.select<DebugProvider, bool>((p) => p.forceHideVertex);
+    final forceShowEdges = context.select<DebugProvider, bool>((p) => p.forceShowEdges);
 
     return NavigationDrawer(
       children: [
@@ -75,6 +77,26 @@ class NavDrawer extends StatelessWidget {
             enabled: hasLastLog,
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => LogPage()));
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 0, 10),
+          child: SwitchListTile(
+            title: Text('Forzar el ocultamiento de Vertices'),
+            value: forceHideVertex,
+            onChanged: (_) {
+              context.read<DebugProvider>().toggleForceHideVertex();
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 0, 10),
+          child: SwitchListTile(
+            title: Text('Forzar la visibilidad de las aristas'),
+            value: forceShowEdges,
+            onChanged: (_) {
+              context.read<DebugProvider>().toggleForceShowEdges();
             },
           ),
         ),

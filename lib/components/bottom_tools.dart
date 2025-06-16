@@ -27,6 +27,7 @@ class BottomTools extends StatelessWidget {
     final toButtonLabel = context.select<SettingsProvider, String?>((p) => p.vertexTo?.name);
     final useExternalAPI = context.select<DebugProvider, bool>((p) => p.useExternalProvider);
     final useAStar = context.select<DebugProvider, bool>((p) => p.useAStar);
+    final pathIsShowing = context.select<SettingsProvider, bool>((p) => p.pathMetadata != null);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
@@ -82,11 +83,16 @@ class BottomTools extends StatelessWidget {
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ModeSelection(),
+              Expanded(child: ModeSelection()),
               FloatingActionButton.extended(
+                backgroundColor:
+                    pathIsShowing ? Theme.of(context).colorScheme.errorContainer : null,
                 onPressed:
-                    () => context.read<SettingsProvider>().searchPath(useExternalAPI, useAStar),
-                label: Text('Buscar'),
+                    () =>
+                        pathIsShowing
+                            ? context.read<SettingsProvider>().resetPath()
+                            : context.read<SettingsProvider>().searchPath(useExternalAPI, useAStar),
+                label: pathIsShowing ? Text('Cancelar') : Text('Buscar'),
               ),
             ],
           ),
