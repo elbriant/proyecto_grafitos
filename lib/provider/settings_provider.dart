@@ -54,6 +54,7 @@ class SettingsProvider extends ChangeNotifier {
 
   List<Vertex> vertex = [];
   List<Edge> edges = [];
+  Graph graph = Graph([], []);
   List<Employee> employees = [];
   List<Vehicle> vehicles = [];
   Dimension dimension = Dimension.land;
@@ -175,6 +176,7 @@ class SettingsProvider extends ChangeNotifier {
 
     employees = sex.employees;
     vehicles = sex.vehicles;
+    graph = Graph(sex.vertex, sex.edges)..buildCaches();
 
     _setVertexEdges(ver: sex.vertex, edg: sex.edges, dbValue: true);
   }
@@ -198,7 +200,6 @@ class SettingsProvider extends ChangeNotifier {
       isPathLoading = true;
       setPath(newPathLength: null, newPathTime: null);
 
-      final graph = Graph(vertex, edges);
       if (!useExternal) {
         final resultByTime =
             (searchMode.isEmpty || searchMode.contains(SearchMode.time))

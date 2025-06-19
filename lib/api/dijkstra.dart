@@ -1,36 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:proyecto_grafitos/models/dijkstra_result.dart';
 import 'package:proyecto_grafitos/models/grafo.dart';
 import 'package:proyecto_grafitos/models/vertex.dart';
 import 'package:proyecto_grafitos/provider/settings_provider.dart';
-
-/// Implementación básica de una cola de prioridad para los algoritmos
-/// Utiliza ordenamiento simple para mantener la prioridad
-class PriorityQueue<T> {
-  final List<T> _elements = [];
-  final Comparator<T> _compare;
-
-  /// Constructor que recibe la función de comparación
-  PriorityQueue(this._compare);
-
-  /// Añade un elemento a la cola y reordena
-  void add(T element) {
-    _elements.add(element);
-    _elements.sort(_compare);
-  }
-
-  T removeFirst() => _elements.removeAt(0);
-
-  void remove(T element) => _elements.remove(element);
-
-  bool get isNotEmpty => _elements.isNotEmpty;
-
-  bool contains(Vertex neighbor) => _elements.contains(neighbor);
-
-  @override
-  String toString() {
-    return _elements.toString();
-  }
-}
 
 /// Implementación del algoritmo de Dijkstra para encontrar los caminos más cortos
 /// desde un nodo inicial a todos los demás nodos en un grafo ponderado.
@@ -43,21 +15,16 @@ DijkstraResult dijkstra(Graph graph, Vertex start, SearchMode searchMode) {
   // Estructuras de datos para el algoritmo
   final distances = <Vertex, double>{};
   final previous = <Vertex, Vertex?>{};
-  final priorityQueue = PriorityQueue<Vertex>((a, b) => distances[a]!.compareTo(distances[b]!));
+  final priorityQueue = HeapPriorityQueue<Vertex>((a, b) => distances[a]!.compareTo(distances[b]!));
 
   // log
   final logging = <String>[];
 
   logging.add('※ Dijkstra inició. modo: ${searchMode.toString()}');
 
-  // Inicialización
-  for (final vertex in graph.vertices) {
-    distances[vertex] = vertex == start ? 0 : double.infinity;
-    previous[vertex] = null;
-    logging.add(
-      'Inicialización: $vertex distancia: ${distances[vertex]}, anterior: ${previous[vertex]}',
-    );
-  }
+  // Lazy initialization
+  distances[start] = 0;
+  logging.add('Inicialización completa para ${graph.vertices.length} nodos (Lazy)');
 
   priorityQueue.add(start);
   logging.add('Cola de prioridad: $priorityQueue');
@@ -78,15 +45,18 @@ DijkstraResult dijkstra(Graph graph, Vertex start, SearchMode searchMode) {
       final totalDistance = distances[current]! + weight;
       logging.add('[I-$ite] Nodo vecino $neighbor: peso: $weight, distancia total: $totalDistance');
 
-      // Si encontramos un camino más corto
-      if (totalDistance < distances[neighbor]!) {
+      // Si encontramos un camino más corto o no está
+      if (!distances.containsKey(neighbor) || totalDistance < distances[neighbor]!) {
         final lastDistance = distances[neighbor];
         final lastPrevious = previous[neighbor];
         distances[neighbor] = totalDistance;
         previous[neighbor] = current;
 
         // Actualizar la cola de prioridad
-        priorityQueue.remove(neighbor);
+        // More efficient priority queue update
+        if (priorityQueue.contains(neighbor)) {
+          priorityQueue.remove(neighbor);
+        }
         priorityQueue.add(neighbor);
         logging.add(
           '[I-$ite] Se encontró camino mas corto para $neighbor: distancia $lastDistance → ${distances[neighbor]} / anterior: $lastPrevious → ${previous[neighbor]}',
