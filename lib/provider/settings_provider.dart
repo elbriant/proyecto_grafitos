@@ -20,7 +20,6 @@ import 'package:proyecto_grafitos/models/vehicle.dart';
 import 'package:proyecto_grafitos/models/vertex.dart';
 import 'package:proyecto_grafitos/utils/distance_calc.dart';
 import 'package:proyecto_grafitos/utils/vehicle_select.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 enum SelectButton { from, to }
