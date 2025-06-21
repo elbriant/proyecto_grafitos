@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:proyecto_grafitos/provider/settings_provider.dart';
 
@@ -42,22 +43,22 @@ class Vertex extends Marker {
 enum VertextIconSelection { from, to }
 
 class VertextIcon extends StatelessWidget {
-  const VertextIcon({super.key, required this.vertexId, required this.isCity});
-  final int vertexId;
+  const VertextIcon({super.key, required this.vertexPoint, required this.isCity});
+  final LatLng vertexPoint;
   final bool isCity;
 
   @override
   Widget build(BuildContext context) {
-    final verFrom = context.select<SettingsProvider, Vertex?>((p) => p.vertexFrom);
-    final verTo = context.select<SettingsProvider, Vertex?>((p) => p.vertexTo);
+    final verFrom = context.select<SettingsProvider, bool>(
+      (p) => p.vertexFrom?.point == vertexPoint,
+    );
+    final verTo = context.select<SettingsProvider, bool>((p) => p.vertexTo?.point == vertexPoint);
 
     VertextIconSelection? selected =
-        verFrom?.id == vertexId
-            ? VertextIconSelection.from
-            : (verTo?.id == vertexId ? VertextIconSelection.to : null);
+        verFrom ? VertextIconSelection.from : (verTo ? VertextIconSelection.to : null);
 
     return GestureDetector(
-      onTap: () => context.read<SettingsProvider>().markerTapped(vertexId),
+      onTap: () => context.read<SettingsProvider>().markerTapped(vertexPoint),
       child:
           isCity
               ? Icon(

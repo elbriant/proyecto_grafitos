@@ -159,13 +159,13 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void markerTapped(int? id) {
-    if (id == null) {
+  void markerTapped(LatLng? point) {
+    if (point == null) {
       setButtonLabel(null);
       return;
     }
 
-    Vertex vtx = vertex.firstWhere((e) => e.id == id);
+    Vertex vtx = graph.getVertexByPoint(point);
     setButtonLabel(vtx);
   }
 
@@ -176,7 +176,7 @@ class SettingsProvider extends ChangeNotifier {
 
     employees = sex.employees;
     vehicles = sex.vehicles;
-    graph = Graph(sex.vertex, sex.edges)..buildCaches();
+    graph = sex.graph;
 
     _setVertexEdges(ver: sex.vertex, edg: sex.edges, dbValue: true);
   }
@@ -329,12 +329,14 @@ class ComputeDatabaseResult {
   final List<Edge> edges;
   final List<Employee> employees;
   final List<Vehicle> vehicles;
+  final Graph graph;
 
   ComputeDatabaseResult({
     required this.vertex,
     required this.edges,
     required this.employees,
     required this.vehicles,
+    required this.graph,
   });
 }
 
@@ -362,7 +364,7 @@ Future<ComputeDatabaseResult> computeDatabase(RootIsolateToken dummy) async {
         point: LatLng(rawVertex['latitud'] as double, rawVertex['longitud'] as double),
         child: VertextIcon(
           isCity: (rawVertex['esCiudad'] as int) == 1 ? true : false,
-          vertexId: rawVertex['idNodos'] as int,
+          vertexPoint: LatLng(rawVertex['latitud'] as double, rawVertex['longitud'] as double),
         ),
         via: Dimension.fromString(rawVertex['via'] as String),
       ),
@@ -381,11 +383,14 @@ Future<ComputeDatabaseResult> computeDatabase(RootIsolateToken dummy) async {
         );
       }).toList();
 
+  final graph = Graph(processedVertex.values.toList(), processedEdges)..buildCaches();
+
   return ComputeDatabaseResult(
     employees: employees,
     vehicles: vehicles,
     edges: processedEdges,
     vertex: processedVertex.values.toList(),
+    graph: graph,
   );
 }
 

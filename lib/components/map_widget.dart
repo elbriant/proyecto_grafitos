@@ -115,16 +115,8 @@ class MapWidgetState extends State<MapWidget> {
     final pathAll = context.select<SettingsProvider, Polyline?>((p) => p.pathAll);
     final completePolyline = [pathTime, pathLength, pathAll].nonNulls.toList();
 
-    final edges =
-        context
-            .select<SettingsProvider, List<Edge>>((p) => p.edges)
-            .where((e) => dimension == e.via)
-            .toList();
-    List<Vertex> vertex =
-        context
-            .select<SettingsProvider, List<Vertex>>((p) => p.vertex)
-            .where((e) => dimension == e.via)
-            .toList();
+    final edges = context.select<SettingsProvider, List<Edge>>((p) => p.edges).toList();
+    List<Vertex> vertex = context.select<SettingsProvider, List<Vertex>>((p) => p.vertex).toList();
 
     if (pathIsShowing) {
       final completePointsList = [for (Polyline poly in completePolyline) ...poly.points];
@@ -133,11 +125,13 @@ class MapWidgetState extends State<MapWidget> {
 
     final fromVertex = context.select<SettingsProvider, Vertex?>((p) => p.vertexFrom);
     final toVertex = context.select<SettingsProvider, Vertex?>((p) => p.vertexTo);
-    final zoomLvThreshold = context.select<DebugProvider, bool>((p) => p.currentZoom > 14);
+    final zoomLvThreshold = context.select<DebugProvider, bool>((p) => p.zoomLvThreshold);
 
     final forceHideVertex = context.select<DebugProvider, bool>((p) => p.forceHideVertex);
     final forceShowEdges = context.select<DebugProvider, bool>((p) => p.forceShowEdges);
     final softShow = context.select<SettingsProvider, bool>((p) => p.pathSoftShow);
+
+    final showPolylines = (softShow && zoomLvThreshold);
 
     return FlutterMap(
       mapController: mapController,
@@ -153,7 +147,7 @@ class MapWidgetState extends State<MapWidget> {
           if (context.read<SettingsProvider>().buttonSelection != null) {
             context.read<SettingsProvider>().markerTapped(null);
           } else {
-            showContextMenu(tapPosition, point, context);
+            // showContextMenu(tapPosition, point, context);
           }
         },
       ),
@@ -162,18 +156,23 @@ class MapWidgetState extends State<MapWidget> {
           urlTemplate: getDimension(dimension),
           userAgentPackageName: 'com.example.proyecto_grafitos',
         ),
-        if ((softShow && zoomLvThreshold) || forceShowEdges) PolylineLayer(polylines: edges),
+        PolylineLayer(
+          polylines:
+              (showPolylines || forceShowEdges)
+                  ? ((dimension == Dimension.land) ? edges : <Polyline>[])
+                  : <Polyline>[],
+        ),
         PolylineLayer(polylines: completePolyline),
         if (!forceHideVertex)
           MarkerClusterLayerWidget(
             options: MarkerClusterLayerOptions(
-              maxClusterRadius: pathIsShowing ? 1 : 75,
+              maxClusterRadius: pathIsShowing ? 10 : 75,
               size: const Size(26, 26),
               alignment: Alignment(0, -0.6),
               maxZoom: 18,
               disableClusteringAtZoom: 17,
               rotate: true,
-              markers: vertex,
+              markers: (dimension == Dimension.land) ? vertex : <Vertex>[],
               showPolygon: false,
               builder: (context, markers) {
                 if (fromVertex != null && markers.contains(fromVertex)) {
@@ -194,10 +193,10 @@ class MapWidgetState extends State<MapWidget> {
                   );
                 }
 
-                if (markers.length > 99) return SizedBox.shrink();
+                if (markers.length > 500) return SizedBox.shrink();
 
                 return Opacity(
-                  opacity: (99 - markers.length) / 99,
+                  opacity: (500 - markers.length) / 500,
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),

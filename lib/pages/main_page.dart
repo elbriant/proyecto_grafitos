@@ -20,10 +20,7 @@ class MainPage extends StatelessWidget {
     final existPathMetadata = context.select<SettingsProvider, bool>((p) => p.pathMetadata != null);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('GrafitosApp'),
-        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.search))],
-      ),
+      appBar: AppBar(title: Text('GrafitosApp')),
       drawer: NavDrawer(),
       body: Stack(
         alignment: Alignment.bottomCenter,

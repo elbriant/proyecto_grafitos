@@ -6,6 +6,7 @@ class DebugProvider extends ChangeNotifier {
   bool useExternalProvider = false;
   bool useAStar = false;
   double currentZoom = 1.0;
+  bool zoomLvThreshold = false;
   LatLng? lastPoint;
   bool forceHideVertex = false;
   bool forceShowEdges = false;
@@ -37,6 +38,7 @@ class DebugProvider extends ChangeNotifier {
 
   void setCurrentZoom(double value) {
     currentZoom = value;
+    zoomLvThreshold = value > 14;
     notifyListeners();
   }
 
