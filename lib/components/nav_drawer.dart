@@ -24,7 +24,6 @@ class NavDrawer extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         NavigationDrawerDestination(label: Text('Mapa'), icon: Icon(Icons.map)),
-        NavigationDrawerDestination(label: Text('Pedidos'), icon: Icon(Icons.account_box)),
         const Padding(padding: EdgeInsets.fromLTRB(28, 16, 28, 10), child: Divider()),
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),

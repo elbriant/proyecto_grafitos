@@ -53,4 +53,8 @@ class Graph {
         return edge.lengthWeight * (1 + edge.trafficWeight);
     }
   }
+
+  Vertex getVertexByPoint(LatLng point) {
+    return _vertexPointMap[point]!;
+  }
 }
