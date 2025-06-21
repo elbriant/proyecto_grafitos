@@ -34,11 +34,11 @@ dependencies:
   path: ^1.9.1
   expandable_text: ^2.3.0
   collection: ^1.19.1
+  sqflite_common_ffi: ^2.3.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  sqflite_common_ffi:
 
   flutter_lints: ^5.0.0
 

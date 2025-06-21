@@ -7,9 +7,9 @@ import 'package:proyecto_grafitos/global_data.dart';
 import 'package:proyecto_grafitos/pages/main_page.dart';
 import 'package:proyecto_grafitos/provider/debug_provider.dart';
 import 'package:proyecto_grafitos/provider/settings_provider.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/services.dart' show ByteData, rootBundle;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +45,14 @@ class MyApp extends StatelessWidget {
 }
 
 Future<void> databaseSetup() async {
+  if (Platform.isWindows || Platform.isLinux) {
+    // Initialize FFI
+    sqfliteFfiInit();
+    // Change the default factory. On iOS/Android, if not using `sqlite_flutter_lib` you can forget
+    // this step, it will use the sqlite version available on the system.
+    databaseFactory = databaseFactoryFfi;
+  }
+
   var databasesPath = await getDatabasesPath();
   String dbPath = join(databasesPath, 'database.db');
 
@@ -52,6 +60,7 @@ Future<void> databaseSetup() async {
   if (FileSystemEntity.typeSync(dbPath) == FileSystemEntityType.notFound || kDebugMode) {
     ByteData data = await rootBundle.load("assets/database.db");
     final buffer = data.buffer;
+    File(dbPath).createSync(recursive: true);
     File(dbPath).writeAsBytesSync(buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
   }
 }

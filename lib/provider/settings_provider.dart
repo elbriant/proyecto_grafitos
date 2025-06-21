@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:core';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ import 'package:proyecto_grafitos/models/vertex.dart';
 import 'package:proyecto_grafitos/utils/distance_calc.dart';
 import 'package:proyecto_grafitos/utils/vehicle_select.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 enum SelectButton { from, to }
 
@@ -342,6 +344,14 @@ class ComputeDatabaseResult {
 
 Future<ComputeDatabaseResult> computeDatabase(RootIsolateToken dummy) async {
   BackgroundIsolateBinaryMessenger.ensureInitialized(dummy);
+
+  if (Platform.isWindows || Platform.isLinux) {
+    // Initialize FFI
+    sqfliteFfiInit();
+    // Change the default factory. On iOS/Android, if not using `sqlite_flutter_lib` you can forget
+    // this step, it will use the sqlite version available on the system.
+    databaseFactory = databaseFactoryFfi;
+  }
 
   Database db = await openDatabase('database.db');
 
