@@ -1,16 +1,9 @@
 # proyecto_grafitos
 
-A new Flutter project.
+<img src="./mockup.png" width="720" />
 
-## Getting Started
+GrafitosApp is a cutting-edge route-finding application developed as a university project. It uses a sophisticated map-based algorithm to provide users with the most efficient travel paths. The app integrates two powerful graph search algorithms, Dijkstra's and A (A-star)*, to calculate optimal routes.
 
-This project is a starting point for a Flutter application.
+Dijkstra's algorithm is known for finding the shortest path between nodes in a graph, while the A* algorithm uses a heuristic approach to significantly improve search speed and efficiency, making it ideal for real-time route planning.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+GrafitosApp also offers the flexibility of integrating with external APIs, allowing for a wide range of potential features, such as real-time traffic updates, public transportation schedules, or even ride-sharing services.
